@@ -1,0 +1,36 @@
+{
+  "name": "expenses-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@aparajita/capacitor-biometric-auth": "10.0.0",
+    "@aparajita/capacitor-secure-storage": "8.0.1",
+    "@capacitor-community/privacy-screen": "8.0.0",
+    "@capacitor/android": "8.5.3",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/filesystem": "8.1.5",
+    "@capacitor/share": "8.0.3",
+    "@fontsource-variable/bricolage-grotesque": "5.3.0",
+    "@fontsource-variable/figtree": "5.3.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.3",
+    "esbuild": "0.28.2"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "sync": "npm run build && npx cap sync android",
+    "test": "node --test \"tests/unit/*.test.mjs\"",
+    "test:smoke": "node tests/browser/smoke.mjs",
+    "test:parity": "node tests/browser/parity.mjs",
+    "audit:project": "node scripts/audit.mjs",
+    "test:water": "node tests/browser/water-flow.mjs",
+    "test:all": "npm test && npm run test:smoke && npm run test:water && npm run test:parity"
+  },
+  "description": "Expenses: a private, offline household expense tracker for Android",
+  "engines": {
+    "node": ">=22"
+  }
+}

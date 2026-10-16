@@ -1,0 +1,67 @@
+<title>Expenses App Icon</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Layout: a hero tile of the icon beside its anatomy, then rows showing masks, sizes and themed use. */
+:root{--bg:#EDF2EF;--surface:#FFFFFF;--ink:#12201B;--ink2:#4E5F58;--line:#D8E1DC;--green:#0E6B58;--gold:#F2C766;--wall1:#CBD8D2;--wall2:#B9CCC4;--fd:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;--fb:'Figtree','Segoe UI',system-ui,sans-serif}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0C1411;--surface:#142019;--ink:#E8F1ED;--ink2:#A9B9B2;--line:#273732;--wall1:#1B2B25;--wall2:#101C17;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0C1411;--surface:#142019;--ink:#E8F1ED;--ink2:#A9B9B2;--line:#273732;--wall1:#1B2B25;--wall2:#101C17;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:400 15px/1.5 var(--fb);padding-block:28px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:880px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1{font:800 34px/1.1 var(--fd);letter-spacing:-.02em;margin:0 0 6px;text-wrap:balance}
+h2{font:700 17px var(--fd);margin:0 0 4px}
+p{margin:0;color:var(--ink2)}
+.hero{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:28px;align-items:center}
+.hero svg{width:100%;height:auto;border-radius:22%;display:block}
+.sw{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.chip{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);font:500 13px var(--fb);font-variant-numeric:tabular-nums}
+.chip i{width:16px;height:16px;border-radius:50%;display:block;border:1px solid var(--line)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px}
+.row{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-end;margin-top:14px}
+.it{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:12.5px;color:var(--ink2);text-align:center}
+.it>div{overflow:hidden}
+.it svg{width:100%;height:100%;display:block}
+.wall{background:linear-gradient(160deg,var(--wall1),var(--wall2));border-radius:18px;padding:22px;display:flex;flex-wrap:wrap;gap:22px;justify-content:space-around;margin-top:14px}
+.mono{background:#2a2f2d;border-radius:50%}
+@media (max-width:560px){.hero{grid-template-columns:1fr}.hero svg{max-width:220px}}
+</style>
+<div class="wrap">
+<section class="hero">
+<div><svg xmlns="http://www.w3.org/2000/svg" viewBox="21 21 66 66"><rect x="21" y="21" width="66" height="66" rx="15" fill="#0E6B58"/><g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M32 53 L54 33 L76 53" stroke="#FFFFFF" stroke-width="4.5"/><path d="M37 48.5 V76 H71 V48.5" stroke="#FFFFFF" stroke-width="4.5"/><path d="M45.5 52.2 H62 M45.5 58.2 H62" stroke="#F2C766" stroke-width="3.5"/><path d="M46 52.2 H52.7 A5.6 5.6 0 0 1 52.7 63.4 H46 L58.3 70.8" stroke="#F2C766" stroke-width="3.5"/></g></svg>
+</div>
+<div>
+<h1>Expenses app icon</h1>
+<p>A house for the household, a gold rupee inside for the money. The green is the app's own accent, so the icon and the screens feel like one product.</p>
+<div class="sw"><span class="chip"><i style="background:#0E6B58"></i>#0E6B58 Background</span><span class="chip"><i style="background:#FFFFFF"></i>#FFFFFF House</span><span class="chip"><i style="background:#F2C766"></i>#F2C766 Rupee</span></div>
+</div>
+</section>
+<section class="card">
+<h2>Shapes and sizes</h2>
+<p>The art stays inside the Android safe zone, so circle, squircle and rounded masks all keep it whole.</p>
+<div class="row">
+<div class="it"><div style="width:48px;height:48px;border-radius:22%"><svg xmlns="http://www.w3.org/2000/svg" viewBox="21 21 66 66"><rect x="21" y="21" width="66" height="66" rx="15" fill="#0E6B58"/><g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M32 53 L54 33 L76 53" stroke="#FFFFFF" stroke-width="4.5"/><path d="M37 48.5 V76 H71 V48.5" stroke="#FFFFFF" stroke-width="4.5"/><path d="M45.5 52.2 H62 M45.5 58.2 H62" stroke="#F2C766" stroke-width="3.5"/><path d="M46 52.2 H52.7 A5.6 5.6 0 0 1 52.7 63.4 H46 L58.3 70.8" stroke="#F2C766" stroke-width="3.5"/></g></svg>
+</div>48 px</div>
+<div class="it"><div style="width:72px;height:72px;border-radius:50%"><svg xmlns="http://www.w3.org/2000/svg" viewBox="21 21 66 66"><circle cx="54" cy="54" r="33" fill="#0E6B58"/><g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M32 53 L54 33 L76 53" stroke="#FFFFFF" stroke-width="4.5"/><path d="M37 48.5 V76 H71 V48.5" stroke="#FFFFFF" stroke-width="4.5"/><path d="M45.5 52.2 H62 M45.5 58.2 H62" stroke="#F2C766" stroke-width="3.5"/><path d="M46 52.2 H52.7 A5.6 5.6 0 0 1 52.7 63.4 H46 L58.3 70.8" stroke="#F2C766" stroke-width="3.5"/></g></svg>
+</div>Circle</div>
+<div class="it"><div style="width:96px;height:96px;border-radius:30%"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108"><rect width="108" height="108" fill="#0E6B58"/><g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M32 53 L54 33 L76 53" stroke="#FFFFFF" stroke-width="4.5"/><path d="M37 48.5 V76 H71 V48.5" stroke="#FFFFFF" stroke-width="4.5"/><path d="M45.5 52.2 H62 M45.5 58.2 H62" stroke="#F2C766" stroke-width="3.5"/><path d="M46 52.2 H52.7 A5.6 5.6 0 0 1 52.7 63.4 H46 L58.3 70.8" stroke="#F2C766" stroke-width="3.5"/></g></svg>
+</div>Squircle</div>
+<div class="it"><div style="width:96px;height:96px;border-radius:50%"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108"><rect width="108" height="108" fill="#0E6B58"/><g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M32 53 L54 33 L76 53" stroke="#FFFFFF" stroke-width="4.5"/><path d="M37 48.5 V76 H71 V48.5" stroke="#FFFFFF" stroke-width="4.5"/><path d="M45.5 52.2 H62 M45.5 58.2 H62" stroke="#F2C766" stroke-width="3.5"/><path d="M46 52.2 H52.7 A5.6 5.6 0 0 1 52.7 63.4 H46 L58.3 70.8" stroke="#F2C766" stroke-width="3.5"/></g></svg>
+</div>Adaptive circle</div>
+<div class="it"><div style="width:96px;height:96px;border-radius:50%" class="mono"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108"><g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M32 53 L54 33 L76 53" stroke="#D7EFE6" stroke-width="4.5"/><path d="M37 48.5 V76 H71 V48.5" stroke="#D7EFE6" stroke-width="4.5"/><path d="M45.5 52.2 H62 M45.5 58.2 H62" stroke="#D7EFE6" stroke-width="3.5"/><path d="M46 52.2 H52.7 A5.6 5.6 0 0 1 52.7 63.4 H46 L58.3 70.8" stroke="#D7EFE6" stroke-width="3.5"/></g></svg>
+</div>Themed (Android 13)</div>
+<div class="it"><div style="width:96px;height:96px;border-radius:22%"><svg xmlns="http://www.w3.org/2000/svg" viewBox="21 21 66 66"><rect x="21" y="21" width="66" height="66" fill="#0E6B58"/><g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M32 53 L54 33 L76 53" stroke="#FFFFFF" stroke-width="4.5"/><path d="M37 48.5 V76 H71 V48.5" stroke="#FFFFFF" stroke-width="4.5"/><path d="M45.5 52.2 H62 M45.5 58.2 H62" stroke="#F2C766" stroke-width="3.5"/><path d="M46 52.2 H52.7 A5.6 5.6 0 0 1 52.7 63.4 H46 L58.3 70.8" stroke="#F2C766" stroke-width="3.5"/></g></svg>
+</div>Play Store</div>
+</div>
+</section>
+<section class="card">
+<h2>On a home screen</h2>
+<div class="wall">
+<div class="it"><div style="width:64px;height:64px;border-radius:50%"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108"><rect width="108" height="108" fill="#0E6B58"/><g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M32 53 L54 33 L76 53" stroke="#FFFFFF" stroke-width="4.5"/><path d="M37 48.5 V76 H71 V48.5" stroke="#FFFFFF" stroke-width="4.5"/><path d="M45.5 52.2 H62 M45.5 58.2 H62" stroke="#F2C766" stroke-width="3.5"/><path d="M46 52.2 H52.7 A5.6 5.6 0 0 1 52.7 63.4 H46 L58.3 70.8" stroke="#F2C766" stroke-width="3.5"/></g></svg>
+</div>Expenses</div>
+<div class="it"><div style="width:64px;height:64px;border-radius:50%;background:#4a4f4d;opacity:.55"></div>Notes</div>
+<div class="it"><div style="width:64px;height:64px;border-radius:50%;background:#4a4f4d;opacity:.55"></div>Clock</div>
+<div class="it"><div style="width:64px;height:64px;border-radius:50%;background:#4a4f4d;opacity:.55"></div>Camera</div>
+</div>
+</section>
+</div>

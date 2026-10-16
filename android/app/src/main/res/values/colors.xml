@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App home background, light theme (#EDF2EF). Used for the native splash and the window behind the web view. -->
+    <color name="app_bg">#EDF2EF</color>
+</resources>

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Expenses</string>
+    <string name="title_activity_main">Expenses</string>
+    <string name="package_name">in.expenses.household</string>
+    <string name="custom_url_scheme">in.expenses.household</string>
+</resources>

@@ -1,0 +1,374 @@
+<title>Expenses Animated Icon</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a phone-shaped stage beside a control column (stacked on narrow screens). The stage shows the real launch sequence ending on the home screen or the lock screen. Tokens are the app's approved palette. */
+:root{
+  --bg:#EDF2EF; --surface:#FFFFFF; --s2:#F3F7F5; --ink:#12201B; --ink2:#4E5F58; --ink3:#66776F; --line:#D8E1DC;
+  --accent:#0E6B58; --onacc:#FFFFFF; --soft:#DCEFE8; --gold:#B8790A; --halo:rgba(14,107,88,.20); --tileshadow:rgba(14,107,88,.42);
+  --shadow:0 1px 2px rgba(18,32,27,.06),0 8px 22px rgba(18,32,27,.05);
+  --fd:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif; --fb:'Figtree','Segoe UI',system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1411; --surface:#142019; --s2:#1B2923; --ink:#E8F1ED; --ink2:#A9B9B2; --ink3:#92A39B; --line:#273732;
+  --accent:#52C7A9; --onacc:#06231B; --soft:#18362D; --gold:#E3B341; --halo:rgba(82,199,169,.17); --tileshadow:rgba(0,0,0,.6);
+  --shadow:0 1px 2px rgba(0,0,0,.4); color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0C1411; --surface:#142019; --s2:#1B2923; --ink:#E8F1ED; --ink2:#A9B9B2; --ink3:#92A39B; --line:#273732;
+  --accent:#52C7A9; --onacc:#06231B; --soft:#18362D; --gold:#E3B341; --halo:rgba(82,199,169,.17); --tileshadow:rgba(0,0,0,.6);
+  --shadow:0 1px 2px rgba(0,0,0,.4); color-scheme:dark;}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.5 var(--fb);padding-block:26px 40px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3,p{margin:0}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:10px}
+.page{max-width:960px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+.intro h1{font:800 32px/1.1 var(--fd);letter-spacing:-.02em;margin-bottom:8px;text-wrap:balance}
+.intro p{color:var(--ink2);max-width:62ch}
+.layout{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:28px;align-items:start}
+@media (max-width:760px){.layout{grid-template-columns:minmax(0,1fr)}}
+.stagecol{display:flex;flex-direction:column;gap:14px;align-items:center;min-width:0}
+
+/* phone */
+.phone{width:min(320px,100%);aspect-ratio:9/19.5;border-radius:38px;border:1px solid var(--line);background:var(--bg);box-shadow:var(--shadow),0 0 0 6px var(--surface);position:relative;overflow:hidden;isolation:isolate}
+.layer{position:absolute;inset:0}
+.scene{display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;pointer-events:none}
+.haloWrap{position:absolute;inset:0}
+.halo{position:absolute;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,var(--halo) 0%,transparent 66%);left:50%;top:44%;margin:-140px 0 0 -140px;opacity:0}
+.group{display:flex;flex-direction:column;align-items:center;margin-top:-8%;will-change:transform,opacity}
+.tilewrap{position:relative;width:112px;height:112px;border-radius:22.7%;opacity:0}
+.tilewrap::before{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:0 18px 32px -14px var(--tileshadow);z-index:0}
+.tilewrap svg{position:relative;z-index:1;display:block;width:100%;height:100%}
+.tilewrap [data-part]{stroke-dasharray:1 2;stroke-dashoffset:1;opacity:0}
+.word{margin-top:22px;font:800 36px/1 var(--fd);letter-spacing:-.025em;color:var(--ink);opacity:0}
+.rule{margin-top:16px;width:44px;height:2px;border-radius:2px;background:var(--gold);opacity:0;transform-origin:50% 50%}
+
+/* home (representative first-launch state: nothing recorded yet) */
+.home,.lock{padding:18px 16px 0;display:flex;flex-direction:column}
+.home[hidden],.lock[hidden]{display:none}
+.hd{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.eyebrow{font:600 10.5px/1 var(--fb);letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:5px}
+.hd h2{font:700 23px/1.1 var(--fd);letter-spacing:-.01em}
+.clk{min-height:38px;padding:4px 10px;border:1px solid var(--line);border-radius:12px;background:var(--surface);font:700 11.5px var(--fd);display:flex;align-items:center;gap:5px;white-space:nowrap}
+.mnav{display:flex;gap:6px;margin-bottom:10px}
+.mnav .b{width:38px;height:38px;border:1px solid var(--line);border-radius:12px;background:var(--surface);display:grid;place-items:center}
+.mnav .m{flex:1;height:38px;border:1px solid var(--line);border-radius:12px;background:var(--surface);display:flex;align-items:center;justify-content:center;gap:6px;font:700 13px var(--fd)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:13px;margin-bottom:10px}
+.card .big{font:700 34px/1.05 var(--fd);letter-spacing:-.02em;margin:5px 0 3px;font-variant-numeric:tabular-nums}
+.card p{font-size:12px;color:var(--ink2)}
+.add{height:46px;border-radius:13px;background:var(--accent);color:var(--onacc);display:flex;align-items:center;justify-content:center;gap:7px;font-weight:700;margin-bottom:12px}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.tile{border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:9px;min-height:84px;display:flex;flex-direction:column;gap:5px}
+.tile .ci{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;color:var(--c);background:color-mix(in srgb,var(--c) 15%,var(--surface))}
+.tile b{font-size:10.5px;font-weight:600;color:var(--ink2);line-height:1.15}
+.tile span.v{font:700 14px var(--fd);margin-top:auto}
+.nav{position:absolute;left:12px;right:12px;bottom:10px;display:grid;grid-template-columns:repeat(4,1fr);padding:5px;background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow)}
+.nav div{display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 0;font:600 9.5px var(--fb);color:var(--ink3);border-radius:15px}
+.nav div.on{background:var(--soft);color:var(--accent)}
+.lock{align-items:center;justify-content:center;text-align:center;gap:12px}
+.lock .li{width:64px;height:64px;border-radius:21px;background:var(--soft);color:var(--accent);display:grid;place-items:center}
+.lock h2{font:700 21px var(--fd)}
+.lock p{font-size:12.5px;color:var(--ink2);max-width:24ch}
+.lock .ub{min-height:44px;padding:0 22px;border-radius:13px;background:var(--accent);color:var(--onacc);font-weight:700;display:flex;align-items:center;gap:7px}
+.dim{position:absolute;inset:0;display:none}
+
+/* controls */
+.tl{width:min(320px,100%);display:flex;flex-direction:column;gap:10px}
+.row{display:flex;gap:8px;align-items:center}
+.btn{min-height:44px;padding:0 16px;border-radius:13px;border:1px solid var(--line);background:var(--surface);font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--onacc)}
+.btn[disabled]{opacity:.5;cursor:default}
+.tl .btn{flex:1}
+.scrub{width:100%;accent-color:var(--accent);height:32px;margin:0}
+.read{display:flex;justify-content:space-between;font:600 12.5px var(--fb);color:var(--ink2);font-variant-numeric:tabular-nums}
+.stages{position:relative;height:20px;border-radius:7px;background:var(--s2);border:1px solid var(--line);overflow:hidden}
+.stages i{position:absolute;top:0;bottom:0;display:grid;place-items:center;font:700 10.5px var(--fd);font-style:normal;color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent);border-right:1px solid var(--line)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11.5px;color:var(--ink2)}
+.legend b{color:var(--accent)}
+.side{display:flex;flex-direction:column;gap:16px;min-width:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px}
+.panel h2{font:700 16px var(--fd);margin-bottom:10px}
+.seg{display:flex;gap:4px;padding:4px;border-radius:14px;background:var(--s2);border:1px solid var(--line)}
+.seg button{flex:1;min-height:38px;border:0;border-radius:10px;background:transparent;color:var(--ink2);font-weight:600;padding:0 8px}
+.seg button[aria-pressed=true]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow);font-weight:700}
+.opts{display:grid;gap:12px}
+.lab{font:600 12px var(--fb);letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px;display:block}
+.chk{display:flex;align-items:center;gap:10px;min-height:40px;font-weight:600;cursor:pointer}
+.chk input{width:20px;height:20px;accent-color:var(--accent)}
+.fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:10px}
+.fields label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--ink2);font-weight:600}
+.fields input,.panel select{min-height:40px;border:1.5px solid var(--line);border-radius:11px;background:var(--bg);padding:0 10px;font-variant-numeric:tabular-nums;width:100%}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th,.tbl td{text-align:left;padding:8px 8px 8px 0;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl th{font:600 11.5px var(--fb);letter-spacing:.05em;text-transform:uppercase;color:var(--ink3)}
+.tbl tr:last-child td{border-bottom:0}
+.tbl td:first-child{white-space:nowrap;font-weight:700;color:var(--accent)}
+.scroll{overflow-x:auto}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px;margin-top:12px}
+.kv span:nth-child(odd){color:var(--ink3);font-weight:600}
+.note{font-size:12.5px;color:var(--ink2)}
+textarea.json{width:100%;min-height:150px;margin-top:10px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;border:1px solid var(--line);border-radius:12px;background:var(--s2);color:var(--ink);padding:10px;display:none}
+</style>
+
+<div class="page">
+  <header class="intro">
+    <h1>Launch animation</h1>
+    <p>The approved icon settles into place and then draws itself: the house is sketched line by line, and the rupee is written inside it. It always finishes as the exact approved icon. The name follows, and the home screen rises in underneath. The background matches the home screen, so there is no colour jump when the sequence ends. Everything here is the real motion, not a screenshot. Press Replay, drag the timeline, or change any timing.</p>
+  </header>
+
+  <div class="layout">
+    <div class="stagecol">
+      <div class="phone" id="phone" aria-label="Launch animation preview">
+        <div class="layer home" id="home" aria-hidden="true"></div>
+        <div class="layer lock" id="lock" hidden></div>
+        <div class="layer scene" id="scene">
+          <div class="haloWrap" id="haloWrap"><div class="halo" id="halo"></div></div>
+          <div class="group" id="group">
+            <div class="tilewrap" id="tile"><svg xmlns="http://www.w3.org/2000/svg" viewBox="21 21 66 66"><rect x="21" y="21" width="66" height="66" rx="15" fill="#0E6B58"/><g fill="none" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" data-part="roof" d="M32 53 L54 33 L76 53" stroke="#FFFFFF" stroke-width="4.5"/><path pathLength="1" data-part="walls" d="M37 48.5 V76 H71 V48.5" stroke="#FFFFFF" stroke-width="4.5"/><path pathLength="1" data-part="bars" d="M45.5 52.2 H62 M45.5 58.2 H62" stroke="#F2C766" stroke-width="3.5"/><path pathLength="1" data-part="leg" d="M46 52.2 H52.7 A5.6 5.6 0 0 1 52.7 63.4 H46 L58.3 70.8" stroke="#F2C766" stroke-width="3.5"/></g></svg></div>
+            <div class="word" id="word">Expenses</div>
+            <div class="rule" id="rule"></div>
+          </div>
+        </div>
+      </div>
+      <div class="tl">
+        <div class="row">
+          <button class="btn pri" id="replay" type="button">Replay</button>
+          <button class="btn" id="pause" type="button">Pause</button>
+        </div>
+        <input class="scrub" id="scrub" type="range" min="0" max="2400" value="0" step="1" aria-label="Timeline position">
+        <div class="stages" id="stages" aria-hidden="true"></div>
+        <div class="read"><span id="rd">0 ms</span><span id="tot">of 2,400 ms</span></div>
+        <div class="legend"><span><b>1</b> Background</span><span><b>2</b> Icon</span><span><b>3</b> Name</span><span><b>4</b> Finish</span><span><b>5</b> Open app</span></div>
+      </div>
+    </div>
+
+    <aside class="side">
+      <section class="panel">
+        <h2>Preview options</h2>
+        <div class="opts">
+          <div><span class="lab">Path</span>
+            <div class="seg" id="presetSeg"><button type="button" aria-pressed="true" data-preset="cold">First launch</button><button type="button" aria-pressed="false" data-preset="returning">Returning user</button></div></div>
+          <div><span class="lab">Theme</span>
+            <div class="seg" id="themeSeg"><button type="button" aria-pressed="true" data-theme-set="system">System</button><button type="button" aria-pressed="false" data-theme-set="light">Light</button><button type="button" aria-pressed="false" data-theme-set="dark">Dark</button></div></div>
+          <div><span class="lab">Playback speed</span>
+            <div class="seg" id="rateSeg"><button type="button" aria-pressed="false" data-rate="0.25">0.25×</button><button type="button" aria-pressed="false" data-rate="0.5">0.5×</button><button type="button" aria-pressed="true" data-rate="1">1×</button></div></div>
+          <label class="chk"><input type="checkbox" id="lockOn"> App lock is on (ends on the lock screen)</label>
+          <label class="chk"><input type="checkbox" id="redOn"> Reduced motion (system setting)</label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Timing</h2>
+        <p class="note" style="margin-bottom:12px">All times in milliseconds from the start of the launch. Changes replay straight away.</p>
+        <div class="fields" id="fields"></div>
+        <div class="row" style="margin-top:12px"><button class="btn" id="reset" type="button">Reset to preset</button><button class="btn" id="copy" type="button">Copy as JSON</button></div>
+        <textarea class="json" id="json" readonly aria-label="Timing JSON"></textarea>
+      </section>
+
+      <section class="panel">
+        <h2>Motion specification</h2>
+        <div class="scroll"><table class="tbl">
+          <thead><tr><th>Stage</th><th>What moves</th><th>Easing</th></tr></thead>
+          <tbody>
+            <tr><td>1 Background</td><td>Soft tonal glow fades in behind the icon. The background colour is the home screen's, so it never changes.</td><td>ease-out</td></tr>
+            <tr><td>2 Icon</td><td>The tile fades in, scales 94% to 100% and rises 8 px.</td><td>cubic-bezier(.16, 1, .3, 1)</td></tr>
+            <tr><td>2 Icon draw</td><td>Roof, walls, then the rupee bars and leg draw on as lines. The last frame is the exact approved icon.</td><td>cubic-bezier(.5, 0, .2, 1)</td></tr>
+            <tr><td>3 Name</td><td>"Expenses" fades in and rises 10 px.</td><td>cubic-bezier(.16, 1, .3, 1)</td></tr>
+            <tr><td>4 Finish</td><td>A thin gold rule draws out from the centre like a ledger line, then fades.</td><td>cubic-bezier(.65, 0, .35, 1)</td></tr>
+            <tr><td>5 Open app</td><td>Icon and name fade out as the home screen fades up, one block at a time.</td><td>cubic-bezier(.65, 0, .35, 1)</td></tr>
+          </tbody></table></div>
+        <div class="kv">
+          <span>Icon</span><span>ic_launcher_rounded.svg, 112 px. Only the line draw-on is added; the final frame is unchanged.</span>
+          <span>Background</span><span>App background: #EDF2EF light, #0C1411 dark</span>
+          <span>Name</span><span>Bricolage Grotesque 800, 36 px, -0.025em</span>
+          <span>Accent line</span><span>App gold: #B8790A light, #E3B341 dark</span>
+          <span>Reduced motion</span><span>Fades only, no movement, about 0.9 s in total</span>
+          <span>App lock</span><span>Ends on the lock screen. No household figures are drawn.</span>
+          <span>Sound, haptics</span><span>None</span>
+        </div>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var EASE_OUT='cubic-bezier(.16,1,.3,1)',EASE_IO='cubic-bezier(.65,0,.35,1)',EASE_DRAW='cubic-bezier(.5,0,.2,1)';
+var PRESETS={
+  cold:{bgDur:300,iconStart:250,iconDur:450,iconFrom:94,iconRise:8,drawOn:1,roofStart:400,roofDur:300,wallsStart:520,wallsDur:380,rupeeStart:850,rupeeDur:260,legStart:960,legDur:280,wordStart:1000,wordDur:500,wordRise:10,haloOn:1,ruleOn:1,ruleStart:1250,ruleDur:600,transStart:1800,transDur:400,stagger:40},
+  returning:{bgDur:150,iconStart:0,iconDur:250,iconFrom:96,iconRise:4,drawOn:1,roofStart:60,roofDur:180,wallsStart:130,wallsDur:200,rupeeStart:290,rupeeDur:160,legStart:340,legDur:170,wordStart:300,wordDur:260,wordRise:6,haloOn:0,ruleOn:0,ruleStart:0,ruleDur:0,transStart:760,transDur:340,stagger:35}
+};
+var FIELDS=[
+  ['bgDur','1 Background fade',0,1000,10],['iconStart','2 Icon start',0,3000,10],['iconDur','2 Icon duration',100,2000,10],
+  ['iconFrom','2 Icon start scale %',80,100,1],['iconRise','2 Icon rise px',0,30,1],
+  ['drawOn','2 Icon draws itself (0 or 1)',0,1,1],['roofStart','2 Roof start',0,3000,10],['roofDur','2 Roof duration',50,1500,10],['wallsStart','2 Walls start',0,3000,10],['wallsDur','2 Walls duration',50,1500,10],['rupeeStart','2 Rupee bars start',0,3000,10],['rupeeDur','2 Rupee bars duration',50,1500,10],['legStart','2 Rupee leg start',0,3000,10],['legDur','2 Rupee leg duration',50,1500,10],
+  ['wordStart','3 Name start',0,3000,10],['wordDur','3 Name duration',100,2000,10],['wordRise','3 Name rise px',0,30,1],
+  ['ruleOn','4 Gold rule (0 or 1)',0,1,1],['ruleStart','4 Rule start',0,3000,10],['ruleDur','4 Rule duration',100,2000,10],
+  ['haloOn','Glow (0 or 1)',0,1,1],
+  ['transStart','5 Open start',0,4000,10],['transDur','5 Open duration',100,1500,10],['stagger','5 Home stagger',0,150,5]
+];
+var state={preset:'cold',cfg:Object.assign({},PRESETS.cold),lock:false,reduced:false,rate:1};
+var anims=[],total=0;
+var $=function(s){return document.querySelector(s);};
+var home=$('#home'),lock=$('#lock'),scrub=$('#scrub'),rd=$('#rd'),tot=$('#tot'),pauseB=$('#pause');
+
+/* ---- representative screens (first-launch state, nothing recorded) ---- */
+var P={
+ cart:'<path d="M3 4h2l2.4 10.2a1 1 0 001 .8h8.9a1 1 0 001-.8L20 8H6"/><circle cx="9" cy="19.5" r="1.2"/><circle cx="17" cy="19.5" r="1.2"/>',
+ bottle:'<path d="M10 3h4v3l1.5 2.5V20a1 1 0 01-1 1h-5a1 1 0 01-1-1V8.5L10 6z"/><path d="M8.5 13h7"/>',
+ flame:'<path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 01-10 0c0-2 1-3 2-4 .3 1.2 1 2 2 2.2C10.5 8 11 5.5 12 3z"/>',
+ bolt:'<path d="M13 2L5 13h6l-1 9 8-11h-6z"/>',
+ drop:'<path d="M12 3c3.5 4.2 6 7 6 10.5a6 6 0 01-12 0C6 10 8.5 7.2 12 3z"/>',
+ key:'<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3M14 9l2 2"/>',
+ home:'<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>',
+ list:'<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/>',
+ chart:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+ sliders:'<path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
+ plus:'<path d="M12 5v14M5 12h14"/>',calendar:'<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/>',
+ lock:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/>',
+ shield:'<path d="M12 3l8 3v6c0 4.5-3.2 7.8-8 9-4.8-1.2-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+ chevL:'<path d="M15 5l-7 7 7 7"/>',chevR:'<path d="M9 5l7 7-7 7"/>'
+};
+function ic(n,s){return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+P[n]+'</svg>';}
+function dayLine(){var d=new Date(),w=d.toLocaleDateString('en-IN',{weekday:'short'}),p=function(n){return String(n).padStart(2,'0');};return w+', '+p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear();}
+var MON=['January','February','March','April','May','June','July','August','September','October','November','December'];
+function buildScreens(){
+  var d=new Date(),h=d.getHours(),g=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
+  var tiles=[['cart','Groceries','#4C9A52'],['bottle','Water Bottles','#2D8FD5'],['flame','Gas Cylinders','#E0762B'],['bolt','Electricity','#D3A006'],['drop','Water Bill','#16A0B0'],['key','Rent','#C0558C']]
+    .map(function(t){return '<div class="tile"><span class="ci" style="--c:'+t[2]+'">'+ic(t[0],17)+'</span><b>'+t[1]+'</b><span class="v">₹0</span></div>';}).join('');
+  home.innerHTML=
+   '<div data-s="0" class="hd"><div><div class="eyebrow">'+g+'</div><h2>Expenses</h2></div><div class="clk">'+ic('calendar',13)+dayLine()+'</div></div>'+
+   '<div data-s="1" class="mnav"><div class="b">'+ic('chevL',16)+'</div><div class="m">'+ic('calendar',14)+MON[d.getMonth()]+' '+d.getFullYear()+'</div><div class="b">'+ic('chevR',16)+'</div></div>'+
+   '<div data-s="2" class="card"><div class="eyebrow">Spent in '+MON[d.getMonth()]+' '+d.getFullYear()+'</div><div class="big">₹0</div><p>Nothing recorded for this month yet.</p></div>'+
+   '<div data-s="3" class="add">'+ic('plus',18)+'Add expense</div>'+
+   '<div data-s="4" class="tiles">'+tiles+'</div>'+
+   '<div data-s="5" class="nav"><div class="on">'+ic('home',18)+'Home</div><div>'+ic('list',18)+'Expenses</div><div>'+ic('chart',18)+'Reports</div><div>'+ic('sliders',18)+'Settings</div></div>';
+  lock.innerHTML='<div data-s="1" class="li">'+ic('lock',30)+'</div><h2 data-s="2">Expenses is locked</h2><p data-s="3">Unlock with your fingerprint, face or screen lock.</p><div data-s="4" class="ub">'+ic('shield',17)+'Unlock</div>';
+}
+
+/* ---- build and play the sequence ---- */
+function effective(){
+  var c=Object.assign({},state.cfg);
+  if(state.reduced){Object.assign(c,{iconFrom:100,iconRise:0,drawOn:0,wordRise:0,haloOn:0,ruleOn:0,iconStart:0,iconDur:250,wordStart:80,wordDur:250,transStart:550,transDur:200,stagger:0});}
+  return c;
+}
+function cancelAll(){anims.forEach(function(a){try{a.cancel();}catch(e){}});anims=[];}
+function A(el,kf,o){var a=el.animate(kf,Object.assign({fill:'both'},o));a.pause();anims.push(a);return a;}
+function build(autoplay){
+  cancelAll();
+  var c=effective();
+  home.hidden=state.lock;lock.hidden=!state.lock;
+  var end=state.lock?lock:home;
+  var tile=$('#tile'),word=$('#word'),rule=$('#rule'),halo=$('#halo'),group=$('#group');
+  var ends=[];
+  /* stage 1 + 4: glow */
+  if(c.haloOn){
+    var hEnd=c.iconStart+c.iconDur+300;
+    A(halo,[{opacity:0,transform:'scale(.92)',offset:0},{opacity:.55,transform:'scale(.94)',offset:Math.min(.9,c.bgDur/hEnd),easing:EASE_OUT},{opacity:1,transform:'scale(1)',offset:1}],{duration:hEnd,easing:EASE_OUT});
+    ends.push(hEnd);
+  }else{halo.style.opacity=0;}
+  /* stage 2: icon */
+  var f=c.iconFrom/100;
+  A(tile,[{opacity:0,transform:'translateY('+c.iconRise+'px) scale('+f+')'},{opacity:1,offset:.7},{opacity:1,transform:'translateY(0) scale(1)'}],{delay:c.iconStart,duration:c.iconDur,easing:EASE_OUT});
+  ends.push(c.iconStart+c.iconDur);
+  /* stage 2b: the icon draws itself. Every part ends exactly as in the approved icon. */
+  var parts={roof:[c.roofStart,c.roofDur],walls:[c.wallsStart,c.wallsDur],bars:[c.rupeeStart,c.rupeeDur],leg:[c.legStart,c.legDur]};
+  Object.keys(parts).forEach(function(k){
+    var el=tile.querySelector('[data-part="'+k+'"]');if(!el)return;
+    if(c.drawOn){
+      /* dash technique while drawing; the last keyframe removes the dashing so the final frame is the plain approved icon */
+      var endOff=(k==='bars'?.5:0);
+      A(el,[{strokeDasharray:'1 2',strokeDashoffset:1,opacity:0,offset:0},
+            {strokeDasharray:'1 2',strokeDashoffset:1,opacity:1,offset:.02},
+            {strokeDasharray:'1 2',strokeDashoffset:endOff,opacity:1,offset:.999},
+            {strokeDasharray:'none',strokeDashoffset:endOff,opacity:1,offset:1}],
+        {delay:parts[k][0],duration:parts[k][1],easing:EASE_DRAW});
+      ends.push(parts[k][0]+parts[k][1]);
+    }else{A(el,[{strokeDasharray:'none',opacity:1},{strokeDasharray:'none',opacity:1}],{duration:1});}
+  });
+  /* stage 3: name */
+  A(word,[{opacity:0,transform:'translateY('+c.wordRise+'px)'},{opacity:1,transform:'translateY(0)'}],{delay:c.wordStart,duration:c.wordDur,easing:EASE_OUT});
+  ends.push(c.wordStart+c.wordDur);
+  /* stage 4: ledger rule */
+  if(c.ruleOn){
+    A(rule,[{opacity:0,transform:'scaleX(0)',offset:0},{opacity:.9,transform:'scaleX(1)',offset:.55,easing:EASE_IO},{opacity:.9,transform:'scaleX(1)',offset:.7},{opacity:0,transform:'scaleX(1)',offset:1}],{delay:c.ruleStart,duration:c.ruleDur,easing:EASE_IO});
+    ends.push(c.ruleStart+c.ruleDur);
+  }else{rule.style.opacity=0;}
+  /* stage 5: hand over to the app */
+  var scaleOut=state.reduced?1:.985;
+  A(group,[{opacity:1,transform:'scale(1)'},{opacity:0,transform:'scale('+scaleOut+')'}],{delay:c.transStart,duration:Math.round(c.transDur*.7),easing:EASE_IO});
+  A($('#haloWrap'),[{opacity:1},{opacity:0}],{delay:c.transStart,duration:c.transDur,easing:EASE_IO});
+  ends.push(c.transStart+c.transDur);
+  var blocks=end.querySelectorAll('[data-s]');
+  blocks.forEach(function(el){
+    var i=+el.dataset.s,rise=state.reduced?0:10,d=c.transStart+90+i*c.stagger,dur=c.transDur+80;
+    A(el,[{opacity:0,transform:'translateY('+rise+'px)'},{opacity:1,transform:'translateY(0)'}],{delay:d,duration:dur,easing:EASE_IO});
+    ends.push(d+dur);
+  });
+  /* the other screen stays out of view */
+  (state.lock?home:lock).querySelectorAll('[data-s]').forEach(function(el){el.style.opacity=0;});
+  total=Math.max.apply(null,ends);
+  scrub.max=total;tot.textContent='of '+total.toLocaleString('en-IN')+' ms';
+  renderStages(c);
+  anims.forEach(function(a){a.playbackRate=state.rate;});
+  if(autoplay!==false)anims.forEach(function(a){a.play();});
+}
+function renderStages(c){
+  var segs=[['1',0,c.haloOn?c.bgDur:Math.min(c.bgDur,c.iconStart)],['2',c.iconStart,c.iconStart+c.iconDur],['3',c.wordStart,c.wordStart+c.wordDur]];
+  if(c.ruleOn)segs.push(['4',c.ruleStart,c.ruleStart+c.ruleDur]);
+  segs.push(['5',c.transStart,c.transStart+c.transDur]);
+  $('#stages').innerHTML=segs.map(function(s,i){var l=s[1]/total*100,w=Math.max(1.5,(s[2]-s[1])/total*100);
+    return '<i style="left:'+l+'%;width:'+w+'%;top:'+(i%2?'0':'0')+'" title="Stage '+s[0]+': '+s[1]+' to '+s[2]+' ms">'+s[0]+'</i>';}).join('');
+}
+
+/* ---- controls ---- */
+function replay(){build(true);}
+$('#replay').addEventListener('click',replay);
+pauseB.addEventListener('click',function(){
+  if(!anims.length)return;
+  var fin=anims.every(function(a){return a.playState==='finished';});
+  if(fin){replay();return;}
+  var run=anims.some(function(a){return a.playState==='running';});
+  anims.forEach(function(a){if(a.playState!=='finished'){run?a.pause():a.play();}});
+});
+scrub.addEventListener('input',function(){var v=+scrub.value;anims.forEach(function(a){a.pause();a.currentTime=v;});});
+function ui(){
+  var t=anims[0]?Math.min(+anims[0].currentTime||0,total):0;
+  if(document.activeElement!==scrub)scrub.value=t;
+  rd.textContent=Math.round(t).toLocaleString('en-IN')+' ms';
+  var fin=anims.length&&anims.every(function(a){return a.playState==='finished';});
+  var run=anims.some(function(a){return a.playState==='running';});
+  pauseB.textContent=fin?'Replay':run?'Pause':'Resume';
+  requestAnimationFrame(ui);
+}
+function seg(id,attr,fn){document.querySelectorAll('#'+id+' button').forEach(function(b){b.addEventListener('click',function(){
+  document.querySelectorAll('#'+id+' button').forEach(function(x){x.setAttribute('aria-pressed',String(x===b));});fn(b.getAttribute(attr));});});}
+seg('presetSeg','data-preset',function(v){state.preset=v;state.cfg=Object.assign({},PRESETS[v]);syncFields();replay();});
+seg('themeSeg','data-theme-set',function(v){var r=document.documentElement;if(v==='system')r.removeAttribute('data-theme');else r.setAttribute('data-theme',v);});
+seg('rateSeg','data-rate',function(v){state.rate=+v;anims.forEach(function(a){a.playbackRate=state.rate;});});
+$('#lockOn').addEventListener('change',function(e){state.lock=e.target.checked;replay();});
+$('#redOn').addEventListener('change',function(e){state.reduced=e.target.checked;replay();});
+function syncFields(){FIELDS.forEach(function(f){var i=$('#fld_'+f[0]);if(i)i.value=state.cfg[f[0]];});}
+$('#fields').innerHTML=FIELDS.map(function(f){return '<label>'+f[1]+'<input type="number" id="fld_'+f[0]+'" min="'+f[2]+'" max="'+f[3]+'" step="'+f[4]+'" inputmode="numeric"></label>';}).join('');
+FIELDS.forEach(function(f){$('#fld_'+f[0]).addEventListener('change',function(e){
+  var v=Number(e.target.value);if(!isFinite(v))v=state.cfg[f[0]];v=Math.min(f[3],Math.max(f[2],v));state.cfg[f[0]]=v;e.target.value=v;replay();});});
+$('#reset').addEventListener('click',function(){state.cfg=Object.assign({},PRESETS[state.preset]);syncFields();replay();});
+$('#copy').addEventListener('click',function(){
+  var t=JSON.stringify({easing:{reveal:EASE_OUT,draw:EASE_DRAW,open:EASE_IO},timing:state.cfg},null,2),box=$('#json');
+  box.value=t;box.style.display='block';box.select();
+  try{navigator.clipboard.writeText(t).catch(function(){});}catch(e){}
+});
+
+/* start */
+state.reduced=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
+$('#redOn').checked=state.reduced;
+buildScreens();syncFields();
+setInterval(function(){var c=document.querySelector('.clk');if(c&&c.lastChild)c.lastChild.textContent=dayLine();},30000);
+build(true);requestAnimationFrame(ui);
+})();
+</script>

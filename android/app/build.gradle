@@ -1,0 +1,66 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace = "in.expenses.household"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "in.expenses.household"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode = (project.findProperty("appVersionCode") ?: "1").toString().toInteger()
+        versionName = (project.findProperty("appVersionName") ?: "1.0.0").toString()
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    // Signing: a stable key means every build installs over the previous one and keeps your data.
+    // If the CI secrets are set (see docs/SIGNING.md) they are used; otherwise the project keystore
+    // checked into android/expenses-stable.jks is used (fine for personal installs, NOT for the Play Store).
+    signingConfigs {
+        stable {
+            def ksFile = System.getenv("EXPENSES_KEYSTORE_FILE") ? file(System.getenv("EXPENSES_KEYSTORE_FILE")) : rootProject.file("expenses-stable.jks")
+            storeFile ksFile
+            storePassword System.getenv("EXPENSES_KEYSTORE_PASSWORD") ?: "expenses-stable"
+            keyAlias System.getenv("EXPENSES_KEY_ALIAS") ?: "expenses"
+            keyPassword System.getenv("EXPENSES_KEY_PASSWORD") ?: "expenses-stable"
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            debuggable false
+            signingConfig signingConfigs.stable
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            signingConfig signingConfigs.stable
+        }
+    }
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'

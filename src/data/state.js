@@ -1,0 +1,31 @@
+/* @auto-imports */
+import {curMonth} from '../core/dates.js';
+import {next} from './storage.js';
+/* @end-imports */
+export function defaultCats(){return[
+ {id:'groceries',name:'Groceries',icon:'cart',color:'#4C9A52',kind:'groceries',b:1},
+ {id:'water',name:'Water Bottles',icon:'bottle',color:'#2D8FD5',kind:'water',unit:'bottle',units:'bottles',b:1},
+ {id:'gas',name:'Gas Cylinders',icon:'flame',color:'#E0762B',kind:'unit',unit:'cylinder',units:'cylinders',b:1},
+ {id:'electricity',name:'Electricity',icon:'bolt',color:'#D3A006',kind:'bill',b:1},
+ {id:'waterbill',name:'Water Bill',icon:'drop',color:'#16A0B0',kind:'bill',b:1},
+ {id:'household',name:'Household Supplies',icon:'box',color:'#8A6FD1',kind:'simple',b:1},
+ {id:'medical',name:'Medical',icon:'medical',color:'#D9506B',kind:'simple',b:1},
+ {id:'travel',name:'Travel',icon:'car',color:'#4B6CD6',kind:'travel',b:1},
+ {id:'rent',name:'Rent',icon:'key',color:'#C0558C',kind:'rent',b:1},
+ {id:'other',name:'Other Expenses',icon:'dots',color:'#6F8079',kind:'simple',b:1}];}
+export function blank(){return{v:1,onboarded:false,theme:'system',houses:[],lock:{on:false,timeout:30},cats:defaultCats(),records:[],dist:[],prices:{},kmCost:'',mon:curMonth()};}
+export const UI={tt:'fuel',wTab:'cal',wsel:null,q:'',cf:'all',sort:'dateDesc',rv:'month',rentDir:'paid',eh:'all'};
+export const catOf=id=>S.cats.find(c=>c.id===id);
+export const houseOf=id=>S.houses.find(h=>h.id===id);
+
+/* The one live copy of the app's data. Other modules import S and mutate it; loading or restoring replaces its contents. */
+export const S={};
+export function replaceState(next){for(const k of Object.keys(S))delete S[k];Object.assign(S,next);}
+/* Short-lived dialog values (typed text in sheets). Never persisted. */
+export const DLG={};
+/* persist() is called after every change. The storage layer registers the real writer. */
+export let persistHook=null;
+export function setPersistHook(fn){persistHook=fn;}
+export function persist(){if(persistHook)persistHook();}
+/* readOnly: the saved data could not be opened, so nothing is written until the person restores or starts again. */
+export const flags={readOnly:false};

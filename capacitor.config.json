@@ -1,0 +1,17 @@
+{
+  "appId": "in.expenses.household",
+  "appName": "Expenses",
+  "webDir": "www",
+  "backgroundColor": "#EDF2EF",
+  "android": {
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false,
+    "adjustMarginsForEdgeToEdge": "auto"
+  },
+  "plugins": {
+    "PrivacyScreen": {
+      "enable": false
+    }
+  },
+  "loggingBehavior": "none"
+}

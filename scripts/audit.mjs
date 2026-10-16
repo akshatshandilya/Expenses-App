@@ -1,0 +1,27 @@
+// Static privacy/security checks that run on every build. Prints PASS/FAIL per check and exits non-zero on any failure.
+import {readFileSync,readdirSync,statSync,existsSync} from 'node:fs';
+import path from 'node:path';
+const walk=d=>readdirSync(d).flatMap(f=>{const p=path.join(d,f);return statSync(p).isDirectory()?walk(p):[p];});
+const src=walk('src').filter(f=>f.endsWith('.js')||f.endsWith('.html')||f.endsWith('.css'));
+const text=src.map(f=>[f,readFileSync(f,'utf8')]);
+let bad=0;const check=(name,ok,detail='')=>{console.log((ok?'PASS ':'FAIL ')+name+(ok?'':'  '+detail));if(!ok)bad++;};
+const manifest=readFileSync('android/app/src/main/AndroidManifest.xml','utf8');
+check('manifest declares no INTERNET permission',!/uses-permission[^>]*INTERNET/.test(manifest));
+check('manifest declares no other uses-permission (USE_BIOMETRIC is merged from the biometric library)',!/<uses-permission/.test(manifest));
+check('Android backup disabled',/allowBackup="false"/.test(manifest));
+check('cleartext traffic disabled',/usesCleartextTraffic="false"/.test(manifest));
+const net=text.filter(([f,t])=>f.endsWith('.js')&&/\b(fetch|XMLHttpRequest|WebSocket|EventSource|sendBeacon|importScripts)\b/.test(t)).map(([f])=>f);
+check('no network APIs in app source',net.length===0,net.join(', '));
+const urls=text.flatMap(([f,t])=>(t.match(/https?:\/\/[^\s'"`)<>]+/g)||[]).filter(u=>!/^https?:\/\/www\.w3\.org\//.test(u)).map(u=>f+' '+u));
+check('no external URLs in app source',urls.length===0,urls.join('; '));
+const logs=text.filter(([f,t])=>f.endsWith('.js')&&/console\.(log|info|debug|warn|error)/.test(t)).map(([f])=>f);
+check('no console logging in app source (records cannot reach logcat)',logs.length===0,logs.join(', '));
+check('no localStorage/sessionStorage/IndexedDB use',!text.some(([f,t])=>f.endsWith('.js')&&/localStorage|sessionStorage|indexedDB/.test(t)));
+check('no eval / Function constructor / document.write',!text.some(([f,t])=>f.endsWith('.js')&&/\beval\(|new Function\(|document\.write\(/.test(t)));
+check('no SQL (so no SQL injection surface)',!text.some(([f,t])=>f.endsWith('.js')&&/\b(SELECT|INSERT INTO|UPDATE \w+ SET)\b/.test(t)));
+check('no analytics/ads/crash-reporting packages',!/firebase|crashlytics|sentry|analytics|admob|facebook|mixpanel|amplitude|google-services/i.test(readFileSync('package.json','utf8')+readFileSync('android/build.gradle','utf8')+readFileSync('android/app/build.gradle','utf8')));
+check('web view debugging disabled and native logging off',/"webContentsDebuggingEnabled": false/.test(readFileSync('capacitor.config.json','utf8'))&&/"loggingBehavior": "none"/.test(readFileSync('capacitor.config.json','utf8')));
+check('content security policy present in index.html',/Content-Security-Policy/.test(readFileSync('src/index.html','utf8')));
+check('no key or password literal besides the documented project signing keystore',!text.some(([f,t])=>f.endsWith('.js')&&/(password|secret|apikey|api_key)\s*[:=]\s*['"][^'"]+['"]/i.test(t)));
+console.log(bad?`\n${bad} check(s) failed`:'\nAll static checks passed');
+process.exit(bad?1:0);

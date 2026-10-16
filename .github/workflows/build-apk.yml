@@ -1,0 +1,88 @@
+name: Build APK
+
+# Runs on every push to main and can be started by hand (Actions tab -> Build APK -> Run workflow).
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Static privacy and security checks
+        run: npm run audit:project
+
+      - name: Dependency vulnerability check (production dependencies, informational)
+        continue-on-error: true
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Build web assets and sync to the Android project
+        run: npm run sync
+
+      - name: Optional release signing key from repository secrets
+        env:
+          KS_B64: ${{ secrets.EXPENSES_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/expenses.jks"
+            echo "EXPENSES_KEYSTORE_FILE=$RUNNER_TEMP/expenses.jks" >> "$GITHUB_ENV"
+            echo "Using the signing key from repository secrets."
+          else
+            echo "No signing secrets set: using the project keystore (android/expenses-stable.jks)."
+          fi
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build release APK
+        working-directory: android
+        env:
+          EXPENSES_KEYSTORE_PASSWORD: ${{ secrets.EXPENSES_KEYSTORE_PASSWORD }}
+          EXPENSES_KEY_ALIAS: ${{ secrets.EXPENSES_KEY_ALIAS }}
+          EXPENSES_KEY_PASSWORD: ${{ secrets.EXPENSES_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease -PappVersionCode=${{ github.run_number }} -PappVersionName=1.0.${{ github.run_number }} --no-daemon
+
+      - name: Check the permissions inside the built APK
+        run: |
+          APK=$(ls android/app/build/outputs/apk/release/*.apk | head -1)
+          AAPT=$(find "$ANDROID_HOME/build-tools" -name aapt2 | sort -V | tail -1)
+          echo "APK: $APK"
+          if [ -z "$AAPT" ]; then echo "aapt2 not found, skipping permission check"; exit 0; fi
+          "$AAPT" dump permissions "$APK" | tee permissions.txt
+          if grep -q "android.permission.INTERNET" permissions.txt; then echo "INTERNET permission found. Failing."; exit 1; fi
+          echo "No INTERNET permission in the built APK."
+
+      - name: Name the APK
+        run: |
+          mkdir -p dist
+          cp android/app/build/outputs/apk/release/*.apk dist/Expenses.apk
+          sha256sum dist/Expenses.apk | tee dist/Expenses.apk.sha256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Expenses-apk
+          path: dist/
+          retention-days: 30

@@ -1,0 +1,83 @@
+name: Release APK
+
+# Publishes the APK on the repository's Releases page.
+# Start it by pushing a tag such as v1.0.0:   git tag v1.0.0 && git push origin v1.0.0
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - run: npm ci
+      - run: npm test
+      - run: npm run audit:project
+      - name: Dependency vulnerability check (informational)
+        continue-on-error: true
+        run: npm audit --omit=dev --audit-level=high
+      - run: npm run sync
+
+      - name: Optional release signing key from repository secrets
+        env:
+          KS_B64: ${{ secrets.EXPENSES_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/expenses.jks"
+            echo "EXPENSES_KEYSTORE_FILE=$RUNNER_TEMP/expenses.jks" >> "$GITHUB_ENV"
+          fi
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Work out the version from the tag (v1.2.3 -> 1.2.3)
+        id: ver
+        run: |
+          V="${GITHUB_REF_NAME#v}"
+          echo "name=$V" >> "$GITHUB_OUTPUT"
+
+      - name: Build release APK
+        working-directory: android
+        env:
+          EXPENSES_KEYSTORE_PASSWORD: ${{ secrets.EXPENSES_KEYSTORE_PASSWORD }}
+          EXPENSES_KEY_ALIAS: ${{ secrets.EXPENSES_KEY_ALIAS }}
+          EXPENSES_KEY_PASSWORD: ${{ secrets.EXPENSES_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease -PappVersionCode=${{ github.run_number }} -PappVersionName=${{ steps.ver.outputs.name }} --no-daemon
+
+      - name: Check the permissions inside the built APK
+        run: |
+          APK=$(ls android/app/build/outputs/apk/release/*.apk | head -1)
+          AAPT=$(find "$ANDROID_HOME/build-tools" -name aapt2 | sort -V | tail -1)
+          if [ -n "$AAPT" ]; then
+            "$AAPT" dump permissions "$APK" | tee permissions.txt
+            if grep -q "android.permission.INTERNET" permissions.txt; then echo "INTERNET permission found. Failing."; exit 1; fi
+          fi
+
+      - name: Name the APK
+        run: |
+          mkdir -p dist
+          cp android/app/build/outputs/apk/release/*.apk "dist/Expenses-${GITHUB_REF_NAME}.apk"
+          (cd dist && sha256sum "Expenses-${GITHUB_REF_NAME}.apk" > "Expenses-${GITHUB_REF_NAME}.apk.sha256")
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.apk
+            dist/*.sha256
+          generate_release_notes: true

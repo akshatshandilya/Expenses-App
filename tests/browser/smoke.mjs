@@ -1,0 +1,40 @@
+// Boot, launch animation (full motion), app lock and auto-lock timeout, checked in a real browser engine with the web fallbacks for native calls.
+import {createRequire} from 'node:module';
+import {build} from 'esbuild';
+import {mkdirSync,cpSync,readFileSync,existsSync} from 'node:fs';
+import http from 'node:http';import path from 'node:path';
+const require=createRequire(import.meta.url);
+const {chromium}=require(process.env.PLAYWRIGHT_PATH||'playwright');
+const CHROME=process.env.CHROME_PATH||'/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell';
+const OUT='tests/.tmp';mkdirSync(OUT+'/www',{recursive:true});
+await build({entryPoints:['tests/browser/harness.js'],bundle:true,format:'iife',outfile:OUT+'/www/app.js',logLevel:'error'});
+for(const f of ['app.css','index.html','fonts'])cpSync('www/'+f,OUT+'/www/'+f,{recursive:true});
+const srv=http.createServer((q,r)=>{const u=q.url.split('?')[0];const f=path.join(OUT,'www',u==='/'?'index.html':u);if(!existsSync(f)){r.writeHead(404);r.end();return;}r.writeHead(200,{'content-type':f.endsWith('.js')?'text/javascript':f.endsWith('.css')?'text/css':f.endsWith('.woff2')?'font/woff2':'text/html'});r.end(readFileSync(f));}).listen(0);
+const browser=await chromium.launch({executablePath:CHROME,args:['--no-sandbox']});
+const ctx=await browser.newContext({viewport:{width:390,height:844},locale:'en-IN'});
+const page=await ctx.newPage();page.setDefaultTimeout(6000);
+const errs=[];page.on('pageerror',e=>errs.push(String(e)));
+let fails=0;const ok=(n,c)=>{console.log((c?'PASS ':'FAIL ')+n);if(!c)fails++;};
+const t0=Date.now();
+await page.goto(`http://localhost:${srv.address().port}/`);
+ok('launch overlay is showing while the animation plays',await page.evaluate(()=>!document.querySelector('#launch').hidden));
+await page.waitForSelector('html.ready',{timeout:8000});const ms=Date.now()-t0;
+ok('first-launch animation finishes in about 2.6 s ('+ms+' ms)',ms>2000&&ms<4500);
+ok('overlay removed afterwards',await page.evaluate(()=>document.querySelector('#launch').hidden));
+ok('first launch shows the welcome screen',await page.evaluate(()=>!!document.querySelector('[data-act="start"]')));
+ok('fresh install starts with no records',await page.evaluate(()=>window.__t.S.records.length===0));
+await page.click('[data-act="start"]');
+ok('home shows ₹0 with no demo data',(await page.textContent('.big')).includes('₹0'));
+// lock
+await page.evaluate(()=>{const t=window.__t;t.S.lock={on:true,timeout:30};t.showLock(false);});
+ok('locked: screen is emptied and lock screen visible',await page.evaluate(()=>document.querySelector('#screen').innerHTML===''&&!document.querySelector('#lockl').hidden));
+await page.click('[data-act="unlock"]');await page.waitForTimeout(200);
+ok('unlock brings the app back',await page.evaluate(()=>!window.__t.isLocked()&&document.querySelector('#lockl').hidden&&document.querySelector('#screen').innerHTML.length>100));
+// auto-lock timeout: background longer than timeout -> lock on return; shorter -> no lock
+await page.evaluate(()=>{window.__t.platform.authenticate=async()=>'cancel';window.__t.S.lock.timeout=1;window.__t.onAppState(false);});await page.waitForTimeout(1900);
+await page.evaluate(()=>window.__t.onAppState(true));ok('returning after the timeout locks the app',await page.evaluate(()=>window.__t.isLocked()));
+await page.waitForTimeout(300);ok('lock screen stays up when the phone prompt is cancelled',await page.evaluate(()=>window.__t.isLocked()&&!document.querySelector('#lockl').hidden));
+await page.evaluate(()=>{window.__t.S.lock.timeout=0;});
+console.log('page errors:',errs.length?errs:'none');
+ok('no script errors',errs.length===0);
+await browser.close();srv.close();process.exit(fails?1:0);

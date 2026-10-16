@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App home background, dark theme (#0C1411). -->
+    <color name="app_bg">#0C1411</color>
+</resources>
