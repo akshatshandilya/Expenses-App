@@ -32,6 +32,7 @@ To build the APK locally you also need JDK 21 and the Android SDK: `npm run sync
 
 - **Water Bottles**: price asked once, then the calendar opens directly. Several deliveries a day. Each delivery keeps the unit price it was saved with; changing the default price never rewrites saved records.
 - **Travel**: Distance, Fuel, Toll. Distance is never counted as spending.
+- **Categories** can be deleted from Settings. Choose any existing category; deleting it also deletes its expense records and, for Travel, its journeys.
 - **Money** is stored as whole paise; quantities in thousandths. Unit price x quantity is rounded half-up to the paisa.
 - **Month a record belongs to**: ordinary purchases by date, bills by billing month. Unpaid bills and rent received are not counted as spending.
 

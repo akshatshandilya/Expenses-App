@@ -67,6 +67,12 @@ Object.assign(A,{
  privacy:()=>go('privacy'),
  backup:()=>go('backup'),
  lockTO:el=>{S.lock.timeout=+el.dataset.v;persist();draw(true);},
+ deleteCategory:()=>sheet('<h2>Delete a category</h2><p class="sub" style="margin-bottom:8px">Choose a category to delete. Its expense records will be deleted too.</p>'+
+   (S.cats.length?'<div class="list">'+S.cats.map(c=>{const n=S.records.filter(r=>r.cat===c.id).length,d=c.id==='travel'?S.dist.length:0;return '<button class="rec" data-act="deleteCategoryGo" data-id="'+esc(c.id)+'">'+chipOf(c)+'<span class="rt"><b>'+esc(c.name)+'</b><small>'+n+' expense record'+(n===1?'':'s')+(d?' · '+d+' journey'+(d===1?'':'s'):'')+'</small></span></button>';}).join('')+'</div>':'<p class="sub" style="margin-bottom:12px">There are no categories to delete.</p>')+
+   '<button class="btn block" data-act="closeL">Close</button>'),
+ deleteCategoryGo:el=>{const c=catOf(el.dataset.id);if(!c)return;const n=S.records.filter(r=>r.cat===c.id).length,d=c.id==='travel'?S.dist.length:0;
+   const details=[n+' expense record'+(n===1?'':'s'),d+' travel journey'+(d===1?'':'s')].filter((x,i)=>i===0||d>0).join(' and ');
+   ask({title:'Delete '+c.name+'?',msg:'This removes the category and '+(n||d?details:'all associated data')+' from this device. This cannot be undone.',ok:'Delete category',danger:true,fn:()=>{S.cats=S.cats.filter(x=>x.id!==c.id);S.records=S.records.filter(r=>r.cat!==c.id);delete S.prices[c.id];if(c.id==='travel')S.dist=[];if(UI.cf===c.id)UI.cf='all';persist();closeL();draw(true);toast('Category deleted');}});},
  delCat:()=>{sheet('<h2>Delete a category’s records</h2><p class="sub" style="margin-bottom:8px">The category stays. Only its records are removed.</p><div class="list">'+S.cats.map(c=>{const n=S.records.filter(r=>r.cat===c.id).length+(c.id==='travel'?S.dist.length:0);return '<button class="rec" data-act="delCatGo" data-id="'+esc(c.id)+'"'+(n?'':' disabled style="opacity:.5"')+'>'+chipOf(c)+'<span class="rt"><b>'+esc(c.name)+'</b><small>'+n+' record'+(n===1?'':'s')+'</small></span></button>';}).join('')+'</div><button class="btn block" data-act="closeL">Close</button>');},
  delCatGo:el=>{const c=catOf(el.dataset.id);if(!c)return;ask({title:'Delete all '+c.name+' records?',msg:'Every record in this category is removed from this device. This cannot be undone.',ok:'Delete records',danger:true,fn:()=>{S.records=S.records.filter(r=>r.cat!==c.id);if(c.id==='travel')S.dist=[];persist();closeL();draw(true);toast('Records deleted');}});},
  clearAll:()=>ask({title:'Clear all data?',msg:'This permanently deletes every record, price and setting on this device. Consider making a backup first.',ok:'Clear everything',danger:true,type:'DELETE',fn:()=>{const t=S.theme;replaceState(blank());S.onboarded=true;S.theme=t;S.mon=curMonth();persist();applyLockEffects();closeL();tab('home');toast('All data cleared');}}),
@@ -85,4 +91,3 @@ export function applyTheme(){
   const dark=S.theme==='dark'||(S.theme==='system'&&!!window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);
   platform.setBars(dark);
 }
-
