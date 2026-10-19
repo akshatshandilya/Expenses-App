@@ -28,7 +28,8 @@
     "audit:project": "node scripts/audit.mjs",
     "test:water": "node tests/browser/water-flow.mjs",
     "test:cabs": "node tests/browser/cabs-flow.mjs",
-    "test:all": "npm test && npm run test:smoke && npm run test:water && npm run test:cabs && npm run test:parity"
+    "test:rent": "node tests/browser/rent-houses-flow.mjs",
+    "test:all": "npm test && npm run test:smoke && npm run test:water && npm run test:cabs && npm run test:rent && npm run test:parity"
   },
   "description": "Expenses: a private, offline household expense tracker for Android",
   "engines": {

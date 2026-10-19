@@ -24,7 +24,7 @@ export function bindEvents(){
       }else if(v&&!dup&&r.name!==v){r.name=v;refreshCabRoutes();persist();draw(true);}
       return;
     }
-    if(onQuickInput(el))return;
+    if(onQuickInput(el,e.type))return;
     if(el.id==='rbFile'){if(e.type==='change')onBackupFile(el);return;}
     if(el.dataset.f){onField(el);return;}
     if(el.dataset.d){DLG[el.dataset.d]=el.value;if(el.dataset.d==='ncn'&&DLG.nc)DLG.nc.name=el.value;if(el.dataset.d==='ncu'&&DLG.nc)DLG.nc.unit=el.value;return;}

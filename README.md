@@ -24,7 +24,7 @@ npm test                 # unit tests: money, months, price history, storage, ba
 npm run audit:project    # static privacy/security checks
 ```
 
-Browser checks need a Chromium (set `CHROME_PATH` to its executable): `npm run test:smoke`, `npm run test:water`, `npm run test:cabs`, `npm run test:parity`.
+Browser checks need a Chromium (set `CHROME_PATH` to its executable): `npm run test:smoke`, `npm run test:water`, `npm run test:cabs`, `npm run test:rent`, `npm run test:parity`.
 
 To build the APK locally you also need JDK 21 and the Android SDK: `npm run sync`, then `cd android && gradlew assembleRelease`. The APK is in `android/app/build/outputs/apk/release/`.
 

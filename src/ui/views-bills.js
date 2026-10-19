@@ -23,11 +23,11 @@ V.electricity=()=>{
    (a.length?recList(a):empty('bolt','No bills in '+monLabel(mk),one?'No electricity bill for '+esc(one.name)+' this month.':'Add a bill for any of your houses.'))+
    '<div class="cta"><button class="btn pri block" data-act="elecAdd">'+ic('plus',20)+'Add electricity bill</button></div>';
 };
-V.houses=()=>hd('Houses')+'<p class="sub" style="margin:-4px 2px 12px">Add every house you pay electricity for. Edit a house to rename it or change its details.</p>'+
-  (S.houses.length?'<div class="list">'+S.houses.map(h=>{const n=S.records.filter(r=>r.houseId===h.id).length;
-    return '<div class="rec" style="cursor:default"><span class="ci" style="--c:#D3A006">'+ic('home',20)+'</span><span class="rt"><b>'+esc(h.name)+(h.demo?'<i class="demo">DEMO</i>':'')+'</b><small>'+esc([h.addr,h.meter].filter(Boolean).join(' · ')||'No details added')+' · '+n+' bill'+(n===1?'':'s')+'</small></span>'+
+V.houses=()=>hd('Houses')+'<p class="sub" style="margin:-4px 2px 12px">Manage the houses used for rent and electricity records. Edit a house to rename it or change its details.</p>'+
+  (S.houses.length?'<div class="list">'+S.houses.map(h=>{const bills=S.records.filter(r=>r.cat==='electricity'&&r.houseId===h.id).length,rents=S.records.filter(r=>r.cat==='rent'&&r.houseId===h.id).length;
+    return '<div class="rec" style="cursor:default"><span class="ci" style="--c:#D3A006">'+ic('home',20)+'</span><span class="rt"><b>'+esc(h.name)+(h.demo?'<i class="demo">DEMO</i>':'')+'</b><small>'+esc([h.addr,h.meter].filter(Boolean).join(' · ')||'No details added')+' · '+bills+' electricity bill'+(bills===1?'':'s')+' · '+rents+' rent record'+(rents===1?'':'s')+'</small></span>'+
     '<button class="ib flat" data-act="editHouse" data-id="'+esc(h.id)+'" aria-label="Edit '+esc(h.name)+'">'+ic('edit',20)+'</button><button class="ib flat" data-act="delHouse" data-id="'+esc(h.id)+'" aria-label="Delete '+esc(h.name)+'">'+ic('trash',20)+'</button></div>';}).join('')+'</div>'
-   :empty('home','No houses yet','Add a house to start logging electricity bills.'))+
+   :empty('home','No houses yet','Add a house to use it for rent or electricity records.'))+
   '<div class="cta"><button class="btn pri block" data-act="addHouse">'+ic('plus',20)+'Add a house</button></div>';
 
 /* category screen for simple kinds */
@@ -40,4 +40,3 @@ V.cat=p=>{
    (a.length?recList(a):empty(c.icon,'Nothing in '+monLabel(mk),'Add a record for this category.'))+
    '<div class="cta"><button class="btn pri block" data-act="catAdd" data-id="'+esc(c.id)+'">'+ic('plus',20)+'Add '+esc(c.name.toLowerCase())+'</button></div>';
 };
-

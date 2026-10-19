@@ -58,10 +58,10 @@ V.cab=()=>{
 /* rent */
 export function agCards(dir){
   const by={};
-  S.records.filter(r=>r.cat==='rent'&&r.dir===dir&&r.x&&r.x.agEnd).sort((x,y)=>x.date<y.date?-1:x.date>y.date?1:(x.ts||0)-(y.ts||0)).forEach(r=>{by[(r.party||'').trim().toLowerCase()]=r;});
+  S.records.filter(r=>r.cat==='rent'&&r.dir===dir&&r.x&&r.x.agEnd).sort((x,y)=>x.date<y.date?-1:x.date>y.date?1:(x.ts||0)-(y.ts||0)).forEach(r=>{by[(r.houseId||r.party||'').trim().toLowerCase()]=r;});
   const ks=Object.keys(by);if(!ks.length)return '';
   return '<div class="card"><h2>Agreement'+(ks.length>1?'s':'')+'</h2>'+ks.map(k=>{const r=by[k],L=leftInfo(r.x.agEnd);
-    return '<div class="kv" style="align-items:center"><span style="min-width:0"><b style="color:var(--ink);font-weight:600">'+esc(r.party||'Rent agreement')+'</b><br><small>'+(r.x.agStart?fmtDate(r.x.agStart)+' to ':'Ends ')+fmtDate(r.x.agEnd)+'</small></span><span class="pill '+(L.tone==='good'?'good':L.tone==='bad'?'bad':'warn')+'">'+L.t+'</span></div>';}).join('')+'</div>';
+    return '<div class="kv" style="align-items:center"><span style="min-width:0"><b style="color:var(--ink);font-weight:600">'+esc((houseOf(r.houseId)&&houseOf(r.houseId).name)||r.party||'Rent agreement')+'</b><br><small>'+(r.x.agStart?fmtDate(r.x.agStart)+' to ':'Ends ')+fmtDate(r.x.agEnd)+'</small></span><span class="pill '+(L.tone==='good'?'good':L.tone==='bad'?'bad':'warn')+'">'+L.t+'</span></div>';}).join('')+'</div>';
 }
 V.rent=()=>{
   const mk=S.mon,P=recsIn(mk,r=>r.cat==='rent'&&r.dir==='paid'),R=recsIn(mk,r=>r.cat==='rent'&&r.dir==='received');

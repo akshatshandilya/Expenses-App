@@ -8,7 +8,7 @@ import {applyLockEffects} from '../native/lock.js';
 import {platform} from '../native/platform.js';
 import {miniCal} from './clock.js';
 import {chipOf} from './components.js';
-import {editParams,entryFor,openEntry,refreshCabRoutes} from './entry.js';
+import {editParams,entryFor,openEntry,refreshCabRoutes,toggleRentHouse} from './entry.js';
 import {ic} from './icons.js';
 import {ask,back,closeL,draw,go,openCat,sheet,stack,tab,toast} from './nav.js';
 import {openQuick} from './quick.js';
@@ -37,7 +37,7 @@ Object.assign(A,{
  rec:el=>recSheet(el.dataset.id),
  edit:el=>{const r=S.records.find(x=>x.id===el.dataset.id);if(r){closeL();openEntry(editParams(r));}},
  del:el=>{const kind=el.dataset.kind,id=el.dataset.id;ask({title:'Delete this record?',msg:'It will be removed and your totals will update. This cannot be undone.',ok:'Delete',danger:true,fn:()=>{if(kind==='dist')S.dist=S.dist.filter(x=>x.id!==id);else S.records=S.records.filter(x=>x.id!==id);persist();closeL();draw(true);toast('Deleted');}});},
- markPaid:el=>{const r=S.records.find(x=>x.id===el.dataset.id);if(r){r.status='paid';persist();closeL();draw(true);toast('Marked as paid');}},
+ markPaid:el=>{const r=S.records.find(x=>x.id===el.dataset.id);if(r){r.status='paid';persist();closeL();draw(true);toast(r.cat==='rent'&&r.dir==='received'?'Marked as received':'Marked as paid');}},
  cf:el=>{UI.cf=el.dataset.id;draw(true);},
  wSetupSave:()=>{const v=parseMoney(DLG.wsp),e=$('#wsErr');if(v==null||v<=0||v>MAX_UNIT){e.textContent='Enter a price above 0, such as 60 or 62.50.';return;}setPrice('water',v,'all');DLG.wsp='';stack[stack.length-1]={n:'water',p:{}};draw();toast('Price saved');},
  wTab:el=>{UI.wTab=el.dataset.v;draw(true);},
@@ -66,8 +66,10 @@ Object.assign(A,{
  editHouse:el=>openEntry({spec:'house',id:el.dataset.id}),
  eh:el=>{UI.eh=el.dataset.id;draw(true);},
  elecAdd:()=>openQuick({cat:'electricity'}),
- delHouse:el=>{const h=houseOf(el.dataset.id);if(!h)return;const n=S.records.filter(r=>r.houseId===h.id).length;
-   ask({title:'Delete '+h.name+'?',msg:n?'Its '+n+' electricity bill'+(n===1?'':'s')+' will be deleted too. This cannot be undone.':'This house has no bills. This cannot be undone.',ok:'Delete house',danger:true,fn:()=>{S.records=S.records.filter(r=>r.houseId!==h.id);S.houses=S.houses.filter(x=>x.id!==h.id);if(UI.eh===h.id)UI.eh='all';persist();closeL();draw(true);toast('House deleted');}});},
+ delHouse:el=>{const h=houseOf(el.dataset.id);if(!h)return;
+   const bills=S.records.filter(r=>r.cat==='electricity'&&r.houseId===h.id).length,rents=S.records.filter(r=>r.cat==='rent'&&r.houseId===h.id).length;
+   ask({title:'Delete '+h.name+'?',msg:(bills?bills+' electricity bill'+(bills===1?'':'s')+' will be deleted. ':'')+(rents?'Rent records will be kept and unlinked from this house. ':'')+(!bills&&!rents?'This house has no linked records. ':'')+'This cannot be undone.',ok:'Delete house',danger:true,fn:()=>{S.records=S.records.filter(r=>!(r.cat==='electricity'&&r.houseId===h.id));S.records.forEach(r=>{if(r.cat==='rent'&&r.houseId===h.id)delete r.houseId;});S.houses=S.houses.filter(x=>x.id!==h.id);if(UI.eh===h.id)UI.eh='all';persist();closeL();draw(true);toast('House deleted');}});},
+ rentAddHouse:()=>toggleRentHouse(),
  rentPick:el=>{UI.rentDir=el.dataset.v;go('rentLog');},
  rentDir:el=>{UI.rentDir=el.dataset.v;draw(true);},
  rentAdd:()=>openQuick({cat:'rent',dir:UI.rentDir}),
