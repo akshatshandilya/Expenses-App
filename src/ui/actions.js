@@ -8,13 +8,18 @@ import {applyLockEffects} from '../native/lock.js';
 import {platform} from '../native/platform.js';
 import {miniCal} from './clock.js';
 import {chipOf} from './components.js';
-import {editParams,entryFor,openEntry} from './entry.js';
+import {editParams,entryFor,openEntry,refreshCabRoutes} from './entry.js';
 import {ic} from './icons.js';
 import {ask,back,closeL,draw,go,openCat,sheet,stack,tab,toast} from './nav.js';
 import {openQuick} from './quick.js';
 import {recSheet} from './record-sheet.js';
 import {A} from './registry.js';
 /* @end-imports */
+function routesHtml(){
+  return '<h2>Edit routes</h2><p class="sub" style="margin-bottom:14px">Rename any route, or add your own. Past rides keep the name they were saved with. Others lets you type a one-off route in the ride form.</p>'+
+   S.routes.map(r=>'<div class="rtrow"><input type="text" id="rt_'+esc(r.id)+'" data-rt="'+esc(r.id)+'" value="'+esc(r.name)+'" maxlength="40" aria-label="Route name" autocomplete="off">'+(r.fixed?'<span class="fix">Always last</span>':'<button class="ib flat" data-act="delRoute" data-id="'+esc(r.id)+'" aria-label="Remove '+esc(r.name)+'">'+ic('trash',20)+'</button>')+'</div>').join('')+
+   '<button class="btn soft block" data-act="addRoute" style="margin-top:4px">'+ic('plus',20)+'Add a route</button><div class="row2"><button class="btn pri" data-act="closeL">Done</button></div>';
+}
 Object.assign(A,{
  back:()=>back(),
  tab:el=>tab(el.dataset.t),
@@ -45,6 +50,10 @@ Object.assign(A,{
  savePrice:()=>{const v=parseMoney(DLG.np),pr=S.prices.water,e=$('#npErr');if(v==null||v<=0||v>MAX_UNIT){e.textContent='Enter a price above 0, such as 65 or 62.50.';return;}if(v===pr.cur){e.textContent='That is already the current price.';return;}setPrice('water',v,DLG.pm||'dated');closeL();draw(true);toast('Price updated');},
  tTab:el=>{UI.tt=el.dataset.v;draw(true);},
  tAdd:el=>openEntry({spec:el.dataset.s}),
+ routes:()=>sheet(routesHtml()),
+ cabAdd:()=>openEntry({spec:'cab'}),
+ addRoute:()=>{if(S.routes.length>=200){toast('You can save up to 200 routes','bad');return;}let n=1,name='New route';while(S.routes.some(r=>r.name.toLowerCase()===name.toLowerCase())){n++;name='New route '+n;}const i=S.routes.findIndex(r=>r.fixed),r={id:uid(),name:name};S.routes.splice(i<0?S.routes.length:i,0,r);refreshCabRoutes();persist();draw(true);sheet(routesHtml());const all=document.querySelectorAll('#layer [data-rt]');for(const el of all)if(el.dataset.rt===r.id){el.focus();el.select();break;}},
+ delRoute:el=>{S.routes=S.routes.filter(r=>r.id!==el.dataset.id||r.fixed);refreshCabRoutes();persist();draw(true);sheet(routesHtml());},
  distRow:el=>{const d=S.dist.find(x=>x.id===el.dataset.id);if(!d)return;sheet('<h2>'+esc(d.from||d.to?((d.from||'?')+' → '+(d.to||'?')):'Journey')+'</h2><div class="num" style="font-size:28px;margin:4px 0 8px">'+qtyStr(d.kmM)+' km</div><div class="kv"><span>Date</span><span>'+fmtDate(d.date)+'</span></div>'+(d.ts?'<div class="kv"><span>Added</span><span>'+fmtStamp(d.ts)+'</span></div>':'')+(d.es?'<div class="kv"><span>Last edited</span><span>'+fmtStamp(d.es)+'</span></div>':'')+(d.purpose?'<div class="kv"><span>Purpose</span><span>'+esc(d.purpose)+'</span></div>':'')+'<p class="sub" style="margin-top:8px">Distance is not counted as spending.</p><div class="row2"><button class="btn" data-act="editDist" data-id="'+esc(d.id)+'">'+ic('edit',18)+'Edit</button><button class="btn dan" data-act="del" data-kind="dist" data-id="'+esc(d.id)+'">'+ic('trash',18)+'Delete</button></div>');},
  editDist:el=>{closeL();openEntry({spec:'distance',id:el.dataset.id});},
  saveKm:()=>{const v=DLG.kmrate==null?S.kmCost:DLG.kmrate,e=$('#kmErr');if(String(v).trim()===''){S.kmCost='';persist();draw(true);return;}const m=parseMoney(v);if(m==null||m<=0||m>100000){e.textContent='Enter an amount above 0, such as 8 or 7.50.';return;}S.kmCost=String(v).trim();persist();draw(true);toast('Estimate saved');},

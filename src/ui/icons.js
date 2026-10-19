@@ -12,6 +12,7 @@ export const ICONS={
  drop:'<path d="M12 3c3.5 4.2 6 7 6 10.5a6 6 0 01-12 0C6 10 8.5 7.2 12 3z"/>',
  box:'<path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/>',
  medical:'<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/>',
+ cab:'<rect x="9" y="2.8" width="6" height="3" rx="1"/><path d="M4 17v-5l2-5h12l2 5v5z"/><path d="M4 12h16"/><circle cx="8" cy="17.5" r="1.6"/><circle cx="16" cy="17.5" r="1.6"/>',
  car:'<path d="M5 13l1.6-5a1.5 1.5 0 011.4-1h8a1.5 1.5 0 011.4 1L19 13"/><rect x="3" y="13" width="18" height="5" rx="2"/><circle cx="7.5" cy="15.5" r=".8"/><circle cx="16.5" cy="15.5" r=".8"/>',
  key:'<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3M14 9l2 2"/>',
  dots:'<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>',

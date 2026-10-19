@@ -12,12 +12,18 @@ import {A,V} from './registry.js';
 export let F=null;
 export function getF(){return F;}
 export function clearF(){F=null;}
+export function refreshCabRoutes(){
+  if(!F||F.sp.cat!=='cab')return;
+  const f=F.sp.fields.find(x=>x.k==='route');if(!f)return;
+  f.opts=S.routes.map(r=>[r.id,r.name]);
+  if(!S.routes.some(r=>r.id===F.vals.route))F.vals.route=S.routes[0]?S.routes[0].id:'';
+}
 /* entry form */
 export function fieldHtml(f){
   const v=F.vals,k=f.k,id='f_'+k,val=v[k]==null?'':v[k];
   const show=!f.show||f.show(v);
   const ro=(f.t==='date'||f.t==='month')?'<span class="ro" id="ro_'+k+'">'+(f.t==='date'?fmtDate(val):(validMonth(val)?monShort(val):''))+'</span>':'';
-  const lab=f.l&&f.t!=='switch'&&f.t!=='seg'&&f.t!=='calc'?'<label for="'+id+'">'+f.l+(f.opt?'<small>optional</small>':'')+ro+'</label>':(f.t==='seg'?'<div class="lb">'+f.l+'</div>':'');
+  const lab=f.l&&f.t!=='switch'&&f.t!=='seg'&&f.t!=='radio'&&f.t!=='calc'?'<label for="'+id+'">'+f.l+(f.opt?'<small>optional</small>':'')+ro+'</label>':(f.t==='seg'||f.t==='radio'?'<div class="lb">'+f.l+'</div>':'');
   let inner='';
   switch(f.t){
     case 'date':inner='<input id="'+id+'" type="date" data-f="'+k+'" value="'+esc(val)+'" min="2000-01-01" max="2100-12-31">';break;
@@ -28,11 +34,12 @@ export function fieldHtml(f){
     case 'qty':inner='<div class="qty">'+(f.step?'<button type="button" class="ib" data-act="step" data-k="'+k+'" data-d="-1" aria-label="Decrease">−</button>':'')+'<div class="pre"><input id="'+id+'" inputmode="decimal" data-f="'+k+'" value="'+esc(val)+'" placeholder="0" autocomplete="off"><span class="sfx" style="font:500 13px var(--fb)">'+esc(typeof f.sfx==='function'?f.sfx(v):(f.sfx||''))+'</span></div>'+(f.step?'<button type="button" class="ib" data-act="step" data-k="'+k+'" data-d="1" aria-label="Increase">+</button>':'')+'</div>';break;
     case 'select':inner='<select id="'+id+'" data-f="'+k+'"><option value="">Not specified</option>'+f.opts.map(o=>'<option'+(o===val?' selected':'')+'>'+esc(o)+'</option>').join('')+'</select>';break;
     case 'hsel':inner='<select id="'+id+'" data-f="'+k+'"><option value="">Choose a house</option>'+S.houses.map(h=>'<option value="'+esc(h.id)+'"'+(h.id===val?' selected':'')+'>'+esc(h.name)+'</option>').join('')+'</select>';break;
-    case 'seg':inner='<div class="seg" role="radiogroup" aria-label="'+esc(f.l)+'">'+f.opts.map(o=>'<button type="button" role="radio" aria-checked="'+(val===o[0])+'" class="'+(val===o[0]?'on':'')+'" data-act="seg" data-k="'+k+'" data-v="'+esc(o[0])+'">'+esc(o[1])+'</button>').join('')+'</div>';break;
+    case 'seg':inner='<div class="seg'+(f.wrap?' wrap':'')+'" role="radiogroup" aria-label="'+esc(f.l)+'">'+f.opts.map(o=>'<button type="button" role="radio" aria-checked="'+(val===o[0])+'" class="'+(val===o[0]?'on':'')+'" data-act="seg" data-k="'+k+'" data-v="'+esc(o[0])+'">'+esc(o[1])+'</button>').join('')+'</div>';break;
+    case 'radio':inner='<div class="rgrp">'+f.opts.map(o=>'<label class="radio"><input type="radio" name="'+id+'" data-f="'+k+'" value="'+esc(o[0])+'"'+(val===o[0]?' checked':'')+'><span><b>'+esc(o[1])+'</b><span>'+esc(o[2]||'')+'</span></span></label>').join('')+'</div>';break;
     case 'switch':inner='<label class="sw"><input type="checkbox" role="switch" data-f="'+k+'"'+(val?' checked':'')+'><span class="trk"></span><span>'+f.l+'</span></label>';break;
     case 'calc':inner='<div class="calc"><div class="formula" id="formula" aria-live="polite"></div><div class="pre"><span>₹</span><input id="f_total" inputmode="decimal" data-f="total" value="'+esc(val)+'" aria-label="Total amount" readonly></div><div style="display:flex;justify-content:space-between;align-items:center"><span class="sub" id="calcNote"></span><button type="button" class="link" id="editLink" data-act="editTotal" hidden></button></div></div>';break;
   }
-  return '<div class="fld" data-fk="'+k+'"'+(show?'':' hidden')+'>'+lab+inner+'<p class="hint" id="hint_'+k+'">'+(f.hint?esc(f.hint(v)):'')+'</p><p class="err" data-err="'+k+'" role="alert"></p></div>';
+  return '<div class="fld" data-fk="'+k+'"'+(show?'':' hidden')+'>'+lab+inner+(f.extra?'<div class="xtra">'+f.extra+'</div>':'')+'<p class="hint" id="hint_'+k+'">'+(f.hint?esc(f.hint(v)):'')+'</p><p class="err" data-err="'+k+'" role="alert"></p></div>';
 }
 V.entry=()=>{
   if(!F)return hd('Entry')+empty('info','Nothing to edit','Go back and try again.');
@@ -85,6 +92,22 @@ export function getSpec(p){
       fill:r=>({date:r.date,fuelType:(r.x&&r.x.fuelType)||'Petrol',qty:qtyStr(r.qtyM),unit:rs(r.unitP),total:rs(r.amountP),vehicle:(r.x&&r.x.vehicle)||'',notes:r.notes||''}),
       manualOf:r=>mul(r.qtyM,r.unitP)!==r.amountP,
       build:v=>({cat:'travel',sub:'fuel',date:v.date,qtyM:parseQty(v.qty),unitP:parseMoney(v.unit),amountP:parseMoney(v.total),notes:v.notes.trim(),x:{fuelType:v.fuelType,vehicle:v.vehicle.trim(),u:v.fuelType==='CNG'?'kg':'litres'}})};
+    case 'cab':{
+      const routeOpts=()=>S.routes.map(r=>[r.id,r.name]);
+      return{cat:'cab',title:p.id?'Edit ride':'Add ride',save:'Save ride',
+       fields:[{k:'date',t:'date',l:'Date'},
+        {k:'mode',t:'radio',l:'Type of ride',opts:[['Auto','Auto','Auto-rickshaw'],['Cab','Cab','Taxi or app cab']]},
+        {k:'route',t:'seg',l:'Route',wrap:1,opts:routeOpts(),extra:'<button type="button" class="link" data-act="routes">Edit routes</button>'},
+        {k:'routeOther',t:'text',l:'Route name',ph:'e.g. Airport, Station to Home',show:v=>v.route==='others'},
+        {k:'fare',t:'money',l:'Fare',ph:'e.g. 120'},
+        {k:'notes',t:'area',l:'Notes',opt:1}],
+       init:()=>({date:defDate(p),mode:'Auto',route:S.routes[0]?S.routes[0].id:'',routeOther:'',fare:'',notes:''}),
+       fill:r=>{const rid=(r.x&&r.x.routeId)||'';const known=S.routes.find(x=>x.id===rid&&rid!=='others')||S.routes.find(x=>x.name===r.party&&!x.fixed);
+        return{date:r.date,mode:(r.x&&r.x.mode)||'Auto',route:known?known.id:'others',routeOther:known?'':(r.party||''),fare:rs(r.amountP),notes:r.notes||''};},
+       build:v=>{const rt=S.routes.find(x=>x.id===v.route);const name=v.route==='others'?v.routeOther.trim():(rt?rt.name:'');
+        return{cat:'cab',sub:v.mode.toLowerCase(),date:v.date,amountP:parseMoney(v.fare),party:name,notes:v.notes.trim(),x:{mode:v.mode,routeId:v.route}};},
+       check:v=>!S.routes.some(x=>x.id===v.route)?{route:'Choose a route.'}:(v.route==='others'&&!v.routeOther.trim()?{routeOther:'Enter the route name.'}:{})};
+    }
     case 'toll':return{cat:'travel',title:p.id?'Edit toll charge':'Add toll charge',save:'Save toll charge',
       fields:[{k:'date',t:'date',l:'Date'},{k:'route',t:'text',l:'Toll plaza or route',opt:1},{k:'vehicle',t:'text',l:'Vehicle',opt:1},{k:'amount',t:'money',l:'Toll amount'},
        {k:'method',t:'select',l:'Payment method',opt:1,opts:['Cash','FASTag','UPI','Card','Other']},{k:'notes',t:'area',l:'Notes',opt:1}],
@@ -138,6 +161,7 @@ export function openEntry(p){
 export function entryFor(c){return c.kind==='groceries'?{spec:'groceries'}:c.kind==='unit'?{spec:'unit',cat:c.id}:c.kind==='bill'?{spec:'bill',cat:c.id}:{spec:'simple',cat:c.id};}
 export function editParams(r){const c=catOf(r.cat)||{};let s='simple';
   if(r.cat==='water')s='water';else if(r.cat==='travel')s=r.sub==='fuel'?'fuel':r.sub==='toll'?'toll':'simple';
+  else if(r.cat==='cab')s='cab';
   else if(c.kind==='unit')s='unit';else if(c.kind==='bill')s='bill';else if(c.kind==='rent')s='rent';else if(c.kind==='groceries')s='groceries';
   return{spec:s,cat:r.cat,id:r.id,dir:r.dir};}
 

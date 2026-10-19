@@ -1,4 +1,4 @@
-import {S,blank,replaceState,setPersistHook,flags} from './data/state.js';
+import {S,blank,replaceState,setPersistHook,flags,migrateState} from './data/state.js';
 import {$} from './core/util.js';
 import {curMonth} from './core/dates.js';
 import {loadState,saveState} from './data/storage.js';
@@ -23,7 +23,7 @@ export async function boot(){
   try{loaded=(await loadState()).state;}catch(e){bad=true;}
   const first=!loaded;
   if(bad){replaceState(blank());S.onboarded=true;}
-  else if(loaded&&loaded.v===1&&Array.isArray(loaded.records)){if(!Array.isArray(loaded.houses))loaded.houses=[];if(!loaded.lock)loaded.lock={on:false,timeout:30};replaceState(loaded);}
+  else if(loaded&&loaded.v===1&&Array.isArray(loaded.records)){if(!Array.isArray(loaded.houses))loaded.houses=[];if(!loaded.lock)loaded.lock={on:false,timeout:30};migrateState(loaded);replaceState(loaded);}
   else replaceState(blank());
   S.mon=curMonth();
   flags.readOnly=bad;

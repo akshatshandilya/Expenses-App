@@ -38,7 +38,7 @@ V.home=()=>{
 };
 
 V.pick=()=>hd('Add expense')+'<p class="sub" style="margin:-4px 2px 12px">Choose a category.</p><div class="list">'+S.cats.map(c=>{
-  const d={water:'Pick a delivery date on the calendar',travel:'Distance, fuel and toll',rent:'Rent paid or received',gas:'Cylinders × price',groceries:'Items or a simple total',electricity:'Bills for one or more houses',waterbill:'Monthly bill'}[c.id]||(c.kind==='unit'?'Quantity × price':'Amount and notes');
+  const d={water:'Pick a delivery date on the calendar',travel:'Distance, fuel and toll',rent:'Rent paid or received',cab:'Auto-rickshaw and cab rides',gas:'Cylinders × price',groceries:'Items or a simple total',electricity:'Bills for one or more houses',waterbill:'Monthly bill'}[c.id]||(c.kind==='unit'?'Quantity × price':'Amount and notes');
   return '<button class="rec" data-act="pickGo" data-id="'+esc(c.id)+'">'+chipOf(c)+'<span class="rt"><b>'+esc(c.name)+'</b><small>'+d+'</small></span>'+ic('chevR',18)+'</button>';}).join('')+
   '<button class="rec" data-act="newCat"><span class="ci">'+ic('plus',22)+'</span><span class="rt"><b>New category</b><small>Create your own, such as Internet or School fees</small></span>'+ic('chevR',18)+'</button></div>';
 
@@ -70,5 +70,4 @@ V.expenses=()=>{
    '<div class="fld"><label for="sort" class="lb">Sort by</label><select id="sort" data-sort="1"><option value="dateDesc"'+(UI.sort==='dateDesc'?' selected':'')+'>Date, newest first</option><option value="dateAsc"'+(UI.sort==='dateAsc'?' selected':'')+'>Date, oldest first</option><option value="amtDesc"'+(UI.sort==='amtDesc'?' selected':'')+'>Amount, high to low</option><option value="amtAsc"'+(UI.sort==='amtAsc'?' selected':'')+'>Amount, low to high</option></select></div>'+
    '<div id="explist">'+expListHtml()+'</div>';
 };
-
 

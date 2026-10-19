@@ -42,6 +42,19 @@ V.travel=()=>{
    '<div class="tabs3">'+tc('distance','pin','Distance',qtyStr(km)+' km','#4B6CD6')+tc('fuel','pump','Fuel',fmt(fS),'#E0762B')+tc('toll','toll','Toll',fmt(tS),'#16A0B0')+'</div>'+body;
 };
 
+V.cab=()=>{
+  const mk=S.mon,a=recsIn(mk,r=>r.cat==='cab').sort((x,y)=>x.date<y.date?1:x.date>y.date?-1:(y.ts||0)-(x.ts||0));
+  const tot=sum(a.filter(counted)),au=a.filter(r=>(r.x&&r.x.mode)==='Auto'),cb=a.filter(r=>(r.x&&r.x.mode)==='Cab');
+  const by={};a.forEach(r=>{const k=r.party||'Route';by[k]=(by[k]||0)+r.amountP;});
+  const top=Object.keys(by).sort((x,y)=>by[y]-by[x]).slice(0,4);
+  return hd('Auto and Cabs','<button class="pchip" data-act="routes" aria-label="Edit routes">Routes'+ic('edit',16)+'</button>')+monNav()+
+   stats([['Spent this month',fmt(tot)],['Rides',String(a.length)]])+
+   (a.length?'<div class="card"><h2>By type</h2><div class="kv"><span>Auto · '+au.length+(au.length===1?' ride':' rides')+'</span><span>'+fmt(sum(au))+'</span></div><div class="kv"><span>Cab · '+cb.length+(cb.length===1?' ride':' rides')+'</span><span>'+fmt(sum(cb))+'</span></div></div>'+
+     '<div class="card"><h2>By route</h2>'+top.map(k=>'<div class="kv"><span>'+esc(k)+'</span><span>'+fmt(by[k])+'</span></div>').join('')+'</div>':'')+
+   (a.length?recList(a):empty('cab','No rides in '+monLabel(mk),'Add an auto or cab ride and it will show up here.'))+
+   '<div class="cta"><button class="btn pri block" data-act="cabAdd">'+ic('plus',20)+'Add ride</button></div>';
+};
+
 /* rent */
 export function agCards(dir){
   const by={};
@@ -68,4 +81,3 @@ V.rentLog=()=>{
    (a.length?recList(a):empty('key','No rent '+(pd?'paid':'received')+' for '+monLabel(mk),'Log a '+(pd?'payment to your landlord':'receipt from your tenant')+' for this month.'))+
    '<div class="cta"><button class="btn pri block" data-act="rentAdd">'+ic('plus',20)+'Log rent '+(pd?'paid':'received')+'</button></div>';
 };
-

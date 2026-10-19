@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {parseMoney,parseQty,mul,fmt,rs} from '../../src/core/money.js';
 import {addMonths,validDate,validMonth,pad} from '../../src/core/dates.js';
-import {S,replaceState,blank} from '../../src/data/state.js';
+import {S,replaceState,blank,migrateState} from '../../src/data/state.js';
 import {spent,catSpent,priceOn,setPrice,sum} from '../../src/core/rules.js';
 import {buildCsv,csvCell} from '../../src/core/csv.js';
 
@@ -52,6 +52,16 @@ test('changing the default price never rewrites saved records',()=>{
   assert.equal(S.prices.water.cur,6500);
   assert.equal(priceOn('water','2026-01-01'),6000);                       // before the change: old price
   assert.equal(priceOn('water','2099-01-01'),6500);                       // after: new price
+});
+test('legacy state gains Auto and Cabs routes once without undoing a later deletion',()=>{
+  const old=blank();old.features={};delete old.routes;old.cats=old.cats.filter(c=>c.id!=='cab');
+  assert.equal(migrateState(old),true);
+  assert.deepEqual(old.routes.map(r=>r.name),['Home to Office','Office to Home','Others']);
+  assert.equal(old.cats.findIndex(c=>c.id==='cab'),old.cats.findIndex(c=>c.id==='other')-1);
+  assert.equal(old.features.autoCabs,1);
+  old.cats=old.cats.filter(c=>c.id!=='cab');
+  assert.equal(migrateState(old),false);
+  assert.equal(old.cats.some(c=>c.id==='cab'),false);
 });
 test('CSV export neutralises spreadsheet formulas and quotes properly',()=>{
   assert.match(csvCell('=SUM(A1)'),/^"?'=/);assert.match(csvCell('+1'),/^"?'\+/);assert.match(csvCell('@x'),/^"?'@/);

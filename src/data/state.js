@@ -12,8 +12,24 @@ export function defaultCats(){return[
  {id:'medical',name:'Medical',icon:'medical',color:'#D9506B',kind:'simple',b:1},
  {id:'travel',name:'Travel',icon:'car',color:'#4B6CD6',kind:'travel',b:1},
  {id:'rent',name:'Rent',icon:'key',color:'#C0558C',kind:'rent',b:1},
+ {id:'cab',name:'Auto and Cabs',icon:'cab',color:'#A8683B',kind:'cab',b:1},
  {id:'other',name:'Other Expenses',icon:'dots',color:'#6F8079',kind:'simple',b:1}];}
-export function blank(){return{v:1,onboarded:false,theme:'system',houses:[],lock:{on:false,timeout:30},cats:defaultCats(),records:[],dist:[],prices:{},kmCost:'',mon:curMonth()};}
+export function defaultRoutes(){return[{id:'rt1',name:'Home to Office'},{id:'rt2',name:'Office to Home'},{id:'others',name:'Others',fixed:1}];}
+export function migrateState(state){
+  let changed=false;
+  if(!Array.isArray(state.routes)){state.routes=defaultRoutes();changed=true;}
+  if(!Array.isArray(state.cats)){state.cats=defaultCats();changed=true;}
+  if(!state.features||typeof state.features!=='object'||Array.isArray(state.features)){state.features={};changed=true;}
+  if(state.features.autoCabs!==1){
+    if(!state.cats.some(c=>c.id==='cab')){
+      const i=state.cats.findIndex(c=>c.id==='other');
+      state.cats.splice(i<0?state.cats.length:i,0,defaultCats().find(c=>c.id==='cab'));
+    }
+    state.features.autoCabs=1;changed=true;
+  }
+  return changed;
+}
+export function blank(){return{v:1,onboarded:false,theme:'system',houses:[],lock:{on:false,timeout:30},cats:defaultCats(),routes:defaultRoutes(),features:{autoCabs:1},records:[],dist:[],prices:{},kmCost:'',mon:curMonth()};}
 export const UI={tt:'fuel',wTab:'cal',wsel:null,q:'',cf:'all',sort:'dateDesc',rv:'month',rentDir:'paid',eh:'all'};
 export const catOf=id=>S.cats.find(c=>c.id===id);
 export const houseOf=id=>S.houses.find(h=>h.id===id);

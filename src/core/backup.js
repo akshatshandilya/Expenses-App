@@ -17,6 +17,16 @@ export function validateData(d){
   if(!d||typeof d!=='object'||d.app!=='expenses'||d.v!==1||!d.data)return 'This is not an Expenses backup.';
   const x=d.data;if(!Array.isArray(x.records)||!Array.isArray(x.dist)||!Array.isArray(x.cats)||typeof x.prices!=='object')return 'The backup is missing required sections.';
   if(x.records.length>50000||x.dist.length>50000||x.cats.length>200)return 'The backup is larger than expected.';
+  if(x.routes!==undefined){
+    if(!Array.isArray(x.routes)||x.routes.length>200)return 'The backup routes are not valid.';
+    const routeIds=new Set(),routeNames=new Set();
+    for(const r of x.routes){
+      if(!r||typeof r.id!=='string'||!r.id||r.id.length>80||typeof r.name!=='string'||!r.name.trim()||r.name.length>40||routeIds.has(r.id)||routeNames.has(r.name.trim().toLowerCase()))return 'A route in the backup is not valid.';
+      routeIds.add(r.id);routeNames.add(r.name.trim().toLowerCase());
+    }
+    const other=x.routes.find(r=>r.id==='others');
+    if(!other||!other.fixed)return 'The backup must include the fixed Others route.';
+  }
   const ids=new Set(x.cats.map(c=>c&&c.id));
   for(const c of x.cats){if(!c||typeof c.id!=='string'||typeof c.name!=='string'||c.name.length>60||!/^#[0-9a-fA-F]{6}$/.test(c.color||'')||!ICONS[c.icon])return 'A category in the backup is not valid.';}
   if(x.houses!==undefined&&(!Array.isArray(x.houses)||x.houses.length>200||x.houses.some(h=>!h||typeof h.id!=='string'||typeof h.name!=='string'||h.name.length>80)))return 'A house in the backup is not valid.';

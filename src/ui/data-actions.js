@@ -1,6 +1,6 @@
 /* Export, backup, restore and the lock screen buttons. */
 import {A} from './registry.js';
-import {S,DLG,persist,replaceState,blank} from '../data/state.js';
+import {S,DLG,persist,replaceState,blank,migrateState} from '../data/state.js';
 import {$} from '../core/util.js';
 import {sheet,closeL,ask,toast,tab} from './nav.js';
 import {buildCsv} from '../core/csv.js';
@@ -38,7 +38,7 @@ Object.assign(A,{
     if(!DLG.rbText){e.textContent='Choose a backup file first.';return;}
     let data;try{data=await decryptBackup(DLG.rbText,DLG.rp||'');}catch(x){e.textContent=x.message;return;}
     ask({title:'Replace everything with this backup?',msg:'It contains '+data.records.length+' records and '+data.dist.length+' journeys. Your current data on this device will be replaced.',ok:'Restore',danger:true,fn:()=>{
-      const t=S.theme;const n=data;n.v=1;if(!Array.isArray(n.houses))n.houses=[];n.onboarded=true;n.theme=n.theme||t;n.mon=curMonth();if(!n.lock)n.lock={on:false,timeout:30};
+      const t=S.theme;const n=data;n.v=1;if(!Array.isArray(n.houses))n.houses=[];migrateState(n);n.onboarded=true;n.theme=n.theme||t;n.mon=curMonth();if(!n.lock)n.lock={on:false,timeout:30};
       flags.readOnly=false;replaceState(n);persist();DLG.rbText='';DLG.rbName='';DLG.rp='';applyTheme();applyLockEffects();closeL();tab('home');toast('Backup restored');}});
   }
 });

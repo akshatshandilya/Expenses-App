@@ -1,8 +1,8 @@
 # Expenses
 
-A private, offline household expense tracker for Android (₹ INR, DD/MM/YYYY). Water bottles with a calendar and price history, travel (distance, fuel, toll), groceries, gas cylinders, electricity and water bills, rent, custom categories, monthly reports, CSV export and encrypted backup.
+A private, offline household expense tracker for Android (₹ INR, DD/MM/YYYY). Water bottles with a calendar and price history, travel (distance, fuel, toll), Auto and Cabs rides with editable route presets, groceries, gas cylinders, electricity and water bills, rent, custom categories, monthly reports, CSV export and encrypted backup.
 
-The user interface is the approved HTML prototype (`design/expenses-prototype-approved.html`). The app is that same code running inside an Android WebView (Capacitor 8), with encrypted storage, app lock, file export and the launch animation added around it.
+The user interface follows the approved HTML prototype (`design/expenses-prototype-approved.html`), with Auto and Cabs added from its supplied feature reference. The app runs inside an Android WebView (Capacitor 8), with encrypted storage, app lock, file export and the launch animation added around it.
 
 ## Get the APK from GitHub (nothing to install on your PC)
 
@@ -24,7 +24,7 @@ npm test                 # unit tests: money, months, price history, storage, ba
 npm run audit:project    # static privacy/security checks
 ```
 
-Browser checks need a Chromium (set `CHROME_PATH` to its executable): `npm run test:smoke`, `npm run test:water`, `npm run test:parity`.
+Browser checks need a Chromium (set `CHROME_PATH` to its executable): `npm run test:smoke`, `npm run test:water`, `npm run test:cabs`, `npm run test:parity`.
 
 To build the APK locally you also need JDK 21 and the Android SDK: `npm run sync`, then `cd android && gradlew assembleRelease`. The APK is in `android/app/build/outputs/apk/release/`.
 
@@ -32,6 +32,7 @@ To build the APK locally you also need JDK 21 and the Android SDK: `npm run sync
 
 - **Water Bottles**: price asked once, then the calendar opens directly. Several deliveries a day. Each delivery keeps the unit price it was saved with; changing the default price never rewrites saved records.
 - **Travel**: Distance, Fuel, Toll. Distance is never counted as spending.
+- **Auto and Cabs**: Log Auto-rickshaw or Cab fares against saved routes, or enter a one-off route. Route presets can be renamed, added or removed.
 - **Categories** can be deleted from Settings. Choose any existing category; deleting it also deletes its expense records and, for Travel, its journeys.
 - **Money** is stored as whole paise; quantities in thousandths. Unit price x quantity is rounded half-up to the paisa.
 - **Month a record belongs to**: ordinary purchases by date, bills by billing month. Unpaid bills and rent received are not counted as spending.

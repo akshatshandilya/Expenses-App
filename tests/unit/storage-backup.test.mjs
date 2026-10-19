@@ -34,10 +34,10 @@ test('rapid saves collapse and the last one wins',async()=>{
   _resetForTests();assert.equal((await loadState()).state.records.length,20);
 });
 test('encrypted backup round trip, wrong passphrase, tampering and malformed input',async()=>{
-  replaceState(mkState(5));
+  const state=mkState(5);state.routes=blank().routes;state.features={autoCabs:1};replaceState(state);
   const text=await encryptBackup('correct horse');
   assert.ok(!text.includes('"water"'));
-  const data=await decryptBackup(text,'correct horse');assert.equal(data.records.length,5);
+  const data=await decryptBackup(text,'correct horse');assert.equal(data.records.length,5);assert.deepEqual(data.routes,state.routes);
   await assert.rejects(decryptBackup(text,'wrong'),/Wrong passphrase/);
   const env=JSON.parse(text);env.ct=env.ct.slice(0,-4)+'AAAA';await assert.rejects(decryptBackup(JSON.stringify(env),'correct horse'),/Wrong passphrase|damaged/);
   for(const bad of ['','not json','{}','{"fmt":"expenses-backup","v":1}','[]','null'])await assert.rejects(decryptBackup(bad,'x'),/not a valid backup/);
@@ -46,4 +46,14 @@ test('encrypted backup round trip, wrong passphrase, tampering and malformed inp
 test('validateData rejects malformed or oversized content',()=>{
   assert.ok(validateData(null));assert.ok(validateData({app:'expenses',v:1,data:{records:'x'}}));
   assert.ok(validateData({app:'expenses',v:1,data:{records:new Array(50001).fill({}),dist:[],cats:[],prices:{}}}));
+});
+test('backup routes are optional for legacy files but validated when present',()=>{
+  const data={app:'expenses',v:1,data:Object.assign(blank(),{records:[],dist:[]})};
+  assert.equal(validateData(data),null);
+  data.data.routes=[{id:'rt1',name:'Route 1'},{id:'others',name:'Others',fixed:1}];
+  assert.equal(validateData(data),null);
+  data.data.routes[0].name=' others ';
+  assert.match(validateData(data),/route in the backup is not valid/);
+  data.data.routes=[{id:'rt1',name:'Route 1'}];
+  assert.match(validateData(data),/fixed Others route/);
 });

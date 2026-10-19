@@ -19,6 +19,7 @@ export function recTitle(r){
     case 'electricity':{const h=houseOf(r.houseId);return 'Electricity'+(h?' \u00B7 '+h.name:'');}
     case 'waterbill':return 'Water bill';
     case 'travel':return r.sub==='fuel'?'Fuel · '+((r.x&&r.x.fuelType)||'Fuel'):r.sub==='toll'?(r.party||'Toll'):(r.title||'Travel charge');
+    case 'cab':return ((r.x&&r.x.mode)||'Ride')+' · '+(r.party||'Route');
     case 'rent':return (r.dir==='received'?'Rent received':'Rent paid')+(r.party?' · '+r.party:'');
     default:{const c=catOf(r.cat);return r.title||(c?c.name:'Expense');}
   }
@@ -36,4 +37,3 @@ export function recRow(r){
   return '<button class="rec" data-act="rec" data-id="'+esc(r.id)+'">'+chipOf(c)+'<span class="rt"><b>'+esc(recTitle(r))+(r.demo?'<i class="demo">DEMO</i>':'')+'</b><small>'+esc(recSub(r))+'</small>'+(r.ts?'<small class="stamp">Added '+fmtStamp(r.ts)+'</small>':'')+'</span><span class="amt'+(inc?' in':'')+'">'+(inc?'+':'')+fmt(r.amountP)+(r.status==='due'?'<em class="due">Due</em>':'')+'</span></button>';
 }
 export const recList=a=>'<div class="list">'+a.map(recRow).join('')+'</div>';
-
