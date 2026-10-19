@@ -30,9 +30,14 @@ export function migrateState(state){
   return changed;
 }
 export function blank(){return{v:1,onboarded:false,theme:'system',houses:[],lock:{on:false,timeout:30},cats:defaultCats(),routes:defaultRoutes(),features:{autoCabs:1},records:[],dist:[],prices:{},kmCost:'',mon:curMonth()};}
-export const UI={tt:'fuel',wTab:'cal',wsel:null,q:'',cf:'all',sort:'dateDesc',rv:'month',rentDir:'paid',eh:'all'};
+export const UI={tt:'fuel',wTab:'cal',wsel:null,q:'',cf:'all',sort:'dateDesc',rv:'month',rentDir:'paid',eh:'all',wbh:'all'};
 export const catOf=id=>S.cats.find(c=>c.id===id);
 export const houseOf=id=>S.houses.find(h=>h.id===id);
+export function houseRentDir(house){
+  if(house.rentDir==='paid'||house.rentDir==='received')return house.rentDir;
+  const linked=S.records.filter(r=>r.cat==='rent'&&(r.houseId===house.id||(!r.houseId&&(r.party||'').trim().toLowerCase()===house.name.trim().toLowerCase())));
+  return linked.some(r=>r.dir==='received')&&!linked.some(r=>r.dir==='paid')?'received':'paid';
+}
 
 /* The one live copy of the app's data. Other modules import S and mutate it; loading or restoring replaces its contents. */
 export const S={};

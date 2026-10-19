@@ -17,7 +17,7 @@ export function recTitle(r){
     case 'gas':return 'Gas cylinders';
     case 'groceries':return r.title||'Groceries';
     case 'electricity':{const h=houseOf(r.houseId);return 'Electricity'+(h?' \u00B7 '+h.name:'');}
-    case 'waterbill':return 'Water bill';
+    case 'waterbill':{const h=houseOf(r.houseId);return 'Water bill'+(h?' · '+h.name:'');}
     case 'travel':return r.sub==='fuel'?'Fuel · '+((r.x&&r.x.fuelType)||'Fuel'):r.sub==='toll'?(r.party||'Toll'):(r.title||'Travel charge');
     case 'cab':return ((r.x&&r.x.mode)||'Ride')+' · '+(r.party||'Route');
     case 'rent':{const h=houseOf(r.houseId);return (r.dir==='received'?'Rent received':'Rent paid')+(h?' · '+h.name:(r.party?' · '+r.party:''));}

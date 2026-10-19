@@ -3,7 +3,7 @@ import {curMonth,fmtDate,leftInfo,monLabel,monShort,today,validDate,validMonth} 
 import {MAX_MONEY,MAX_QTY,MAX_UNIT,fmt,mul,parseMoney,parseQty,qtyStr,rs} from '../core/money.js';
 import {priceOn,recMonth,setPrice} from '../core/rules.js';
 import {$,$$,esc,uid} from '../core/util.js';
-import {S,UI,catOf,houseOf,persist} from '../data/state.js';
+import {S,UI,catOf,houseOf,houseRentDir,persist} from '../data/state.js';
 import {empty,hd} from './components.js';
 import {ic} from './icons.js';
 import {draw,go,stack,toast} from './nav.js';
@@ -38,9 +38,9 @@ export function fieldHtml(f){
     case 'qty':inner='<div class="qty">'+(f.step?'<button type="button" class="ib" data-act="step" data-k="'+k+'" data-d="-1" aria-label="Decrease">−</button>':'')+'<div class="pre"><input id="'+id+'" inputmode="decimal" data-f="'+k+'" value="'+esc(val)+'" placeholder="0" autocomplete="off"><span class="sfx" style="font:500 13px var(--fb)">'+esc(typeof f.sfx==='function'?f.sfx(v):(f.sfx||''))+'</span></div>'+(f.step?'<button type="button" class="ib" data-act="step" data-k="'+k+'" data-d="1" aria-label="Increase">+</button>':'')+'</div>';break;
     case 'select':inner='<select id="'+id+'" data-f="'+k+'"><option value="">Not specified</option>'+f.opts.map(o=>'<option'+(o===val?' selected':'')+'>'+esc(o)+'</option>').join('')+'</select>';break;
     case 'hsel':inner='<select id="'+id+'" data-f="'+k+'"><option value="">Choose a house</option>'+S.houses.map(h=>'<option value="'+esc(h.id)+'"'+(h.id===val?' selected':'')+'>'+esc(h.name)+'</option>').join('')+'</select>';break;
-    case 'houseRadio':inner='<div class="house-options" role="radiogroup" aria-label="House">'+S.houses.map(h=>'<label class="radio house-option"><input type="radio" name="'+id+'" data-f="'+k+'" value="'+esc(h.id)+'"'+(val===h.id?' checked':'')+'><span><b>'+esc(h.name)+'</b><small>'+esc([h.addr,h.meter].filter(Boolean).join(' · ')||'No additional details')+'</small></span></label>').join('')+'</div>'+
+    case 'houseRadio':inner='<div class="house-options" role="radiogroup" aria-label="House">'+S.houses.filter(h=>!f.filter||f.filter(h,v)).map(h=>'<label class="radio house-option"><input type="radio" name="'+id+'" data-f="'+k+'" value="'+esc(h.id)+'"'+(val===h.id?' checked':'')+'><span><b>'+esc(h.name)+'</b><small>'+esc([h.addr,h.meter].filter(Boolean).join(' · ')||'No additional details')+'</small></span></label>').join('')+'</div>'+
       '<button type="button" class="btn soft block" data-act="rentAddHouse">'+ic('plus',18)+'Add a house</button>'+
-      (v.addHouse?'<div class="rent-house-new"><div class="fld"><label for="f_houseName">House name</label><input id="f_houseName" type="text" data-f="houseName" maxlength="80" value="'+esc(v.houseName||'')+'" placeholder="e.g. Main home" autocomplete="off"><p class="err" data-err="houseName" role="alert"></p></div><div class="fld"><label for="f_houseAddr">Address or area <small>optional</small></label><input id="f_houseAddr" type="text" data-f="houseAddr" maxlength="80" value="'+esc(v.houseAddr||'')+'" placeholder="e.g. Flat 4B" autocomplete="off"></div><div class="fld"><label for="f_houseMeter">Consumer or meter number <small>optional</small></label><input id="f_houseMeter" type="text" data-f="houseMeter" maxlength="80" value="'+esc(v.houseMeter||'')+'" autocomplete="off"></div></div>':'');break;
+      (v.addHouse?'<div class="rent-house-new"><div class="fld"><label for="f_houseName">House name</label><input id="f_houseName" type="text" data-f="houseName" maxlength="80" value="'+esc(v.houseName||'')+'" placeholder="e.g. Main home" autocomplete="off"><p class="err" data-err="houseName" role="alert"></p></div><div class="fld"><label for="f_houseAddr">Address or area <small>optional</small></label><input id="f_houseAddr" type="text" data-f="houseAddr" maxlength="80" value="'+esc(v.houseAddr||'')+'" placeholder="e.g. Flat 4B" autocomplete="off"></div><div class="fld"><label for="f_houseMeter">Consumer or meter number <small>optional</small></label><input id="f_houseMeter" type="text" data-f="houseMeter" maxlength="80" value="'+esc(v.houseMeter||'')+'" autocomplete="off"></div><div class="fld"><div class="lb">Rent type</div><div class="rgrp"><label class="radio"><input type="radio" name="f_houseDir" data-f="houseDir" value="paid"'+((v.houseDir||'paid')==='paid'?' checked':'')+'><span><b>Paying Rent</b><span>Rent paid to a landlord</span></span></label><label class="radio"><input type="radio" name="f_houseDir" data-f="houseDir" value="received"'+(v.houseDir==='received'?' checked':'')+'><span><b>Receiving Rent</b><span>Rent collected from a tenant</span></span></label></div></div></div>':'');break;
     case 'seg':inner='<div class="seg'+(f.wrap?' wrap':'')+'" role="radiogroup" aria-label="'+esc(f.l)+'">'+f.opts.map(o=>'<button type="button" role="radio" aria-checked="'+(val===o[0])+'" class="'+(val===o[0]?'on':'')+'" data-act="seg" data-k="'+k+'" data-v="'+esc(o[0])+'">'+esc(o[1])+'</button>').join('')+'</div>';break;
     case 'radio':inner='<div class="rgrp">'+f.opts.map(o=>'<label class="radio"><input type="radio" name="'+id+'" data-f="'+k+'" value="'+esc(o[0])+'"'+(val===o[0]?' checked':'')+'><span><b>'+esc(o[1])+'</b><span>'+esc(o[2]||'')+'</span></span></label>').join('')+'</div>';break;
     case 'switch':inner='<label class="sw"><input type="checkbox" role="switch" data-f="'+k+'"'+(val?' checked':'')+'><span class="trk"></span><span>'+f.l+'</span></label>';break;
@@ -127,29 +127,30 @@ export function getSpec(p){
       fill:r=>({date:r.date,from:r.from||'',to:r.to||'',km:qtyStr(r.kmM),purpose:r.purpose||''}),
       build:v=>({date:v.date,from:v.from.trim(),to:v.to.trim(),kmM:parseQty(v.km),purpose:v.purpose.trim()})};
     case 'house':return{cat:'electricity',store:'houses',title:p.id?'Edit house':'Add house',save:'Save house',
-      fields:[{k:'name',t:'text',l:'House name',ph:'e.g. Main home, Flat 4B',req:1},{k:'addr',t:'text',l:'Address or area',opt:1},{k:'meter',t:'text',l:'Consumer or meter number',opt:1}],
-      init:()=>({name:'',addr:'',meter:''}),
-      fill:r=>({name:r.name,addr:r.addr||'',meter:r.meter||''}),
-      build:v=>({name:v.name.trim(),addr:v.addr.trim(),meter:v.meter.trim()}),
+      fields:[{k:'name',t:'text',l:'House name',ph:'e.g. Main home, Flat 4B',req:1},{k:'addr',t:'text',l:'Address or area',opt:1},{k:'meter',t:'text',l:'Consumer or meter number',opt:1}].concat(p.utility?[]:[{k:'rentDir',t:'radio',l:'Rent type',opts:[['paid','Paying Rent','Rent paid to a landlord'],['received','Receiving Rent','Rent collected from a tenant']]}]),
+      init:()=>({name:'',rentDir:'paid',addr:'',meter:''}),
+      fill:r=>({name:r.name,rentDir:houseRentDir(r),addr:r.addr||'',meter:r.meter||''}),
+      build:v=>({name:v.name.trim(),rentDir:v.rentDir,addr:v.addr.trim(),meter:v.meter.trim()}),
       check:v=>S.houses.some(h=>h.id!==F.id&&h.name.toLowerCase()===v.name.trim().toLowerCase())?{name:'You already have a house with this name.'}:{}};
     case 'bill':return{cat:c.id,title:(p.id?'Edit ':'Add ')+c.name.toLowerCase(),save:'Save bill',
-      fields:(c.id==='electricity'?[{k:'houseId',t:'hsel',l:'House'}]:[]).concat([{k:'period',t:'month',l:'Billing month'},{k:'date',t:'date',l:'Payment or bill date'},{k:'amount',t:'money',l:'Bill amount'},
+      fields:(c.id==='electricity'||c.id==='waterbill'?[{k:'houseId',t:'hsel',l:'House'}]:[]).concat([{k:'period',t:'month',l:'Billing month'},{k:'date',t:'date',l:'Payment or bill date'},{k:'amount',t:'money',l:'Bill amount'},
        {k:'party',t:'text',l:c.id==='electricity'?'Provider':'Provider or meter number',opt:1},{k:'due',t:'date',l:'Due date',opt:1},{k:'paid',t:'switch',l:'Paid',hint:payHint},{k:'notes',t:'area',l:'Notes',opt:1}]),
-      init:()=>({houseId:p.houseId||(houseOf(UI.eh)?UI.eh:(S.houses.length===1?S.houses[0].id:'')),period:S.mon,date:defDate(p),amount:'',party:'',due:'',paid:false,notes:''}),
+      init:()=>({houseId:p.houseId||(c.id==='electricity'&&houseOf(UI.eh)?UI.eh:c.id==='waterbill'&&houseOf(UI.wbh)?UI.wbh:(S.houses.length===1?S.houses[0].id:'')),period:S.mon,date:defDate(p),amount:'',party:'',due:'',paid:false,notes:''}),
       fill:r=>({houseId:r.houseId||'',period:r.period||r.date.slice(0,7),date:r.date,amount:rs(r.amountP),party:r.party||'',due:(r.x&&r.x.due)||'',paid:r.status!=='due',notes:r.notes||''}),
-      build:v=>Object.assign({cat:c.id,date:v.date,period:v.period,amountP:parseMoney(v.amount),party:v.party.trim(),status:v.paid?'paid':'due',notes:v.notes.trim(),x:{due:v.due}},c.id==='electricity'?{houseId:v.houseId}:{}),
-      dup:rec=>{const o=S.records.find(r=>r.cat===c.id&&r.id!==rec.id&&r.period===rec.period&&(c.id!=='electricity'||r.houseId===rec.houseId));return o?'A '+c.name.toLowerCase()+(c.id==='electricity'&&houseOf(rec.houseId)?' for '+houseOf(rec.houseId).name:'')+' for '+monLabel(rec.period)+' is already saved ('+fmt(o.amountP)+'). You can still save this one.':'';}};
+      build:v=>Object.assign({cat:c.id,date:v.date,period:v.period,amountP:parseMoney(v.amount),party:v.party.trim(),status:v.paid?'paid':'due',notes:v.notes.trim(),x:{due:v.due}},c.id==='electricity'||c.id==='waterbill'?{houseId:v.houseId}:{}),
+      dup:rec=>{const byHouse=c.id==='electricity'||c.id==='waterbill',o=S.records.find(r=>r.cat===c.id&&r.id!==rec.id&&r.period===rec.period&&(!byHouse||r.houseId===rec.houseId));return o?'A '+c.name.toLowerCase()+(byHouse&&houseOf(rec.houseId)?' for '+houseOf(rec.houseId).name:'')+' for '+monLabel(rec.period)+' is already saved ('+fmt(o.amountP)+'). You can still save this one.':'';}};
     case 'rent':{const pd=(p.dir||'paid')==='paid';
       const prior=S.records.filter(r=>r.cat==='rent'&&r.dir===(pd?'paid':'received')).sort((x,y)=>x.date<y.date?1:x.date>y.date?-1:(y.ts||0)-(x.ts||0))[0];
-      const houseId=prior?(houseOf(prior.houseId)?prior.houseId:(S.houses.find(h=>h.name.trim().toLowerCase()===(prior.party||'').trim().toLowerCase())||{}).id||''):(S.houses.length===1?S.houses[0].id:'');
+      const dirHouses=S.houses.filter(h=>houseRentDir(h)===(pd?'paid':'received'));
+      const houseId=prior?(houseOf(prior.houseId)?prior.houseId:(S.houses.find(h=>h.name.trim().toLowerCase()===(prior.party||'').trim().toLowerCase())||{}).id||''):(dirHouses.length===1?dirHouses[0].id:'');
       return{cat:'rent',title:(p.id?'Edit rent ':'Log rent ')+(pd?'paid':'received'),save:pd?'Save rent paid':'Save rent received',
       fields:[{k:'period',t:'month',l:'Rent for month'},{k:'date',t:'date',l:pd?'Date paid':'Date received'},{k:'amount',t:'money',l:'Amount'},
-       {k:'houseId',t:'houseRadio',l:'House'},
+       {k:'houseId',t:'houseRadio',l:'House',filter:h=>houseRentDir(h)===(pd?'paid':'received')},
        {k:'method',t:'select',l:'Payment method',opt:1,opts:['Cash','UPI','Bank transfer','Cheque','Other']},
        {k:'agStart',t:'date',l:'Agreement start date',opt:1},{k:'agEnd',t:'date',l:'Agreement end date',opt:1,hint:agHint},{k:'paid',t:'switch',l:pd?'Paid':'Received',hint:v=>v.paid?(pd?'Shown as Paid and counted in this month’s spending.':'Shown as Received. Rent received is income and is not counted as spending.'):(pd?'Shown as Due. It is not counted in spending until you check Paid.':'Shown as Due. Check Received when the tenant has paid.')},{k:'notes',t:'area',l:'Notes',opt:1}],
-      init:()=>({period:S.mon,date:defDate(p),amount:'',houseId:houseId,addHouse:false,houseName:'',houseAddr:'',houseMeter:'',method:'',agStart:lastAg(pd).s,agEnd:lastAg(pd).e,paid:false,notes:''}),
+      init:()=>({period:S.mon,date:defDate(p),amount:'',houseId:houseId,addHouse:false,houseDir:pd?'paid':'received',houseName:'',houseAddr:'',houseMeter:'',method:'',agStart:lastAg(pd).s,agEnd:lastAg(pd).e,paid:false,notes:''}),
       fill:r=>{const h=houseOf(r.houseId),match=h||S.houses.find(x=>x.name.trim().toLowerCase()===(r.party||'').trim().toLowerCase());
-        return{period:r.period||r.date.slice(0,7),date:r.date,amount:rs(r.amountP),houseId:match?match.id:'',addHouse:!match&&!!r.party,houseName:!match?(r.party||''):'',houseAddr:'',houseMeter:'',method:(r.x&&r.x.method)||'',agStart:(r.x&&r.x.agStart)||'',agEnd:(r.x&&r.x.agEnd)||'',paid:r.status!=='due',notes:r.notes||''};},
+        return{period:r.period||r.date.slice(0,7),date:r.date,amount:rs(r.amountP),houseId:match?match.id:'',addHouse:!match&&!!r.party,houseDir:pd?'paid':'received',houseName:!match?(r.party||''):'',houseAddr:'',houseMeter:'',method:(r.x&&r.x.method)||'',agStart:(r.x&&r.x.agStart)||'',agEnd:(r.x&&r.x.agEnd)||'',paid:r.status!=='due',notes:r.notes||''};},
       build:v=>{const house=houseOf(v.houseId);return{cat:'rent',dir:pd?'paid':'received',date:v.date,period:v.period,amountP:parseMoney(v.amount),houseId:v.houseId,party:v.addHouse?v.houseName.trim():(house?house.name:''),status:v.paid?'paid':'due',notes:v.notes.trim(),x:{method:v.method,agStart:v.agStart,agEnd:v.agEnd}};},
       check:v=>{
         const errors={};
@@ -157,6 +158,7 @@ export function getSpec(p){
           const name=v.houseName.trim();
           if(!name)errors.houseName='Enter a house name.';
           else if(S.houses.some(h=>h.name.trim().toLowerCase()===name.toLowerCase()))errors.houseName='A house with this name already exists. Select it from the list.';
+          if(v.houseDir!==(pd?'paid':'received'))errors.houseId='Choose '+(pd?'Paying Rent':'Receiving Rent')+' for this rent log.';
         }else if(!houseOf(v.houseId))errors.houseId='Choose a house or add a new one.';
         if(v.agStart&&v.agEnd&&v.agEnd<=v.agStart)errors.agEnd='The end date must be after the start date.';
         return errors;
@@ -206,6 +208,7 @@ export function onField(el){
   if(k==='date'&&F.sp.unitDate&&!F.unitTouched&&validDate(v.date)){const pr=priceOn(F.sp.cat,v.date);if(pr!=null){v.unit=rs(pr);const ui=$('#f_unit');if(ui)ui.value=v.unit;}}
   const ro=$('#ro_'+k);if(ro){const f=F.sp.fields.find(x=>x.k===k);ro.textContent=f.t==='date'?fmtDate(v[k]):(validMonth(v[k])?monShort(v[k]):'');}
   const fl=el.closest('.fld');if(fl){fl.classList.remove('bad');const e=$('[data-err]',fl);if(e)e.textContent='';}
+  if(k==='houseDir'){const e=$('[data-err="houseId"]');if(e){e.textContent='';const f=e.closest('.fld');if(f)f.classList.remove('bad');}}
   recalc();syncShow();
 }
 export function validate(){
@@ -241,7 +244,7 @@ export function saveForm(){
   const base=sp.build(v);
   const old=(sp.store==='dist'?S.dist:sp.store==='houses'?S.houses:S.records).find(x=>x.id===F.id),rec=Object.assign({id:F.id,ts:(old&&old.ts)?old.ts:Date.now()},base);if(old)rec.es=Date.now();
   if(sp.dup&&!F.dupAck){const m=sp.dup(rec);if(m){F.dupAck=true;const w=$('#warn');w.textContent=m;w.hidden=false;$('#saveBtn').lastChild.textContent='Save anyway';w.scrollIntoView({block:'center'});return;}}
-  if(sp.cat==='rent'&&v.addHouse){const h={id:uid(),name:v.houseName.trim(),addr:v.houseAddr.trim(),meter:v.houseMeter.trim()};S.houses.push(h);base.houseId=h.id;base.party=h.name;rec.houseId=h.id;rec.party=h.name;}
+  if(sp.cat==='rent'&&v.addHouse){const h={id:uid(),name:v.houseName.trim(),rentDir:v.houseDir,addr:v.houseAddr.trim(),meter:v.houseMeter.trim()};S.houses.push(h);base.houseId=h.id;base.party=h.name;rec.houseId=h.id;rec.party=h.name;}
   F.saving=true;const b=$('#saveBtn');if(b)b.disabled=true;
   upsert(sp.store==='dist'?S.dist:sp.store==='houses'?S.houses:S.records,rec);
   if(sp.after)sp.after(rec,v);

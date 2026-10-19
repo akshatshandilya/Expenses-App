@@ -63,12 +63,15 @@ Object.assign(A,{
    sheet('<div class="eyebrow">'+weekday(today())+'</div><h2 id="tsDate" style="margin:4px 0 2px">'+fmtDate(today())+'</h2><div class="num" id="tsTime" style="font-size:28px">'+fmtClock()+'</div><p class="sub" style="margin:6px 0 12px">Uses your phone’s clock'+(tz?' and time zone ('+esc(tz)+')':'')+'. The date changes by itself at midnight, and a new month starts with no spending.</p><div class="card flat" style="margin-bottom:0"><div class="eyebrow" style="margin-bottom:8px">'+monLabel(today().slice(0,7))+'</div>'+miniCal(today().slice(0,7))+'<div class="legend"><span><i></i>Has records</span></div></div><div class="row2"><button class="btn" data-act="closeL">Close</button></div>');},
  houses:()=>go('houses'),
  addHouse:()=>openEntry({spec:'house'}),
+ addUtilityHouse:()=>openEntry({spec:'house',utility:true}),
  editHouse:el=>openEntry({spec:'house',id:el.dataset.id}),
  eh:el=>{UI.eh=el.dataset.id;draw(true);},
+ wbh:el=>{UI.wbh=el.dataset.id;draw(true);},
  elecAdd:()=>openQuick({cat:'electricity'}),
+ waterBillAdd:()=>openQuick({cat:'waterbill'}),
  delHouse:el=>{const h=houseOf(el.dataset.id);if(!h)return;
-   const bills=S.records.filter(r=>r.cat==='electricity'&&r.houseId===h.id).length,rents=S.records.filter(r=>r.cat==='rent'&&r.houseId===h.id).length;
-   ask({title:'Delete '+h.name+'?',msg:(bills?bills+' electricity bill'+(bills===1?'':'s')+' will be deleted. ':'')+(rents?'Rent records will be kept and unlinked from this house. ':'')+(!bills&&!rents?'This house has no linked records. ':'')+'This cannot be undone.',ok:'Delete house',danger:true,fn:()=>{S.records=S.records.filter(r=>!(r.cat==='electricity'&&r.houseId===h.id));S.records.forEach(r=>{if(r.cat==='rent'&&r.houseId===h.id)delete r.houseId;});S.houses=S.houses.filter(x=>x.id!==h.id);if(UI.eh===h.id)UI.eh='all';persist();closeL();draw(true);toast('House deleted');}});},
+   const bills=S.records.filter(r=>(r.cat==='electricity'||r.cat==='waterbill')&&r.houseId===h.id).length,rents=S.records.filter(r=>r.cat==='rent'&&r.houseId===h.id).length;
+   ask({title:'Delete '+h.name+'?',msg:(bills?bills+' utility bill'+(bills===1?'':'s')+' will be deleted. ':'')+(rents?'Rent records will be kept and unlinked from this house. ':'')+(!bills&&!rents?'This house has no linked records. ':'')+'This cannot be undone.',ok:'Delete house',danger:true,fn:()=>{S.records=S.records.filter(r=>!((r.cat==='electricity'||r.cat==='waterbill')&&r.houseId===h.id));S.records.forEach(r=>{if(r.cat==='rent'&&r.houseId===h.id)delete r.houseId;});S.houses=S.houses.filter(x=>x.id!==h.id);if(UI.eh===h.id)UI.eh='all';persist();closeL();draw(true);toast('House deleted');}});},
  rentAddHouse:()=>toggleRentHouse(),
  rentPick:el=>{UI.rentDir=el.dataset.v;go('rentLog');},
  rentDir:el=>{UI.rentDir=el.dataset.v;draw(true);},
