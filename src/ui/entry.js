@@ -4,9 +4,9 @@ import {MAX_MONEY,MAX_QTY,MAX_UNIT,fmt,mul,parseMoney,parseQty,qtyStr,rs} from '
 import {priceOn,recMonth,setPrice} from '../core/rules.js';
 import {$,$$,esc,uid} from '../core/util.js';
 import {S,UI,catOf,houseOf,houseRentDir,tenantProfiles,persist} from '../data/state.js';
-import {empty,hd} from './components.js';
+import {empty,hd,tenantOptions,tenantPicker} from './components.js';
 import {ic} from './icons.js';
-import {draw,go,stack,toast} from './nav.js';
+import {closeL,draw,go,sheet,stack,toast} from './nav.js';
 import {A,V} from './registry.js';
 /* @end-imports */
 export let F=null;
@@ -48,7 +48,7 @@ export function fieldHtml(f){
     case 'select':inner='<select id="'+id+'" data-f="'+k+'"><option value="">Not specified</option>'+f.opts.map(o=>'<option'+(o===val?' selected':'')+'>'+esc(o)+'</option>').join('')+'</select>';break;
     case 'hsel':inner='<select id="'+id+'" data-f="'+k+'"><option value="">Choose a house</option>'+S.houses.map(h=>'<option value="'+esc(h.id)+'"'+(h.id===val?' selected':'')+'>'+esc(h.name)+'</option>').join('')+'</select>';break;
     case 'tenantSelect':{const house=houseOf(v.houseId),profiles=v.addHouse?(v.newTenants||[]).filter(t=>t.name.trim()):tenantProfiles(house);
-      inner='<select id="'+id+'" data-f="'+k+'"><option value="">Choose a tenant</option>'+profiles.map(t=>'<option value="'+esc(t.name)+'"'+(t.name===val?' selected':'')+'>'+esc(t.name)+'</option>').join('')+'</select>';break;}
+      inner=tenantPicker(val,profiles,id,'tenantPicker');break;}
     case 'tenantRoster':inner='<div class="lb">'+f.l+'</div>'+tenantRowsHtml(val||[emptyTenant()],k);break;
     case 'houseRadio':inner='<div class="house-options" role="radiogroup" aria-label="House">'+S.houses.filter(h=>!f.filter||f.filter(h,v)).map(h=>'<label class="radio house-option"><input type="radio" name="'+id+'" data-f="'+k+'" value="'+esc(h.id)+'"'+(val===h.id?' checked':'')+'><span><b>'+esc(h.name)+'</b><small>'+esc([h.addr,h.meter].filter(Boolean).join(' · ')||'No additional details')+'</small></span></label>').join('')+'</div>'+
       '<button type="button" class="btn soft block" data-act="rentAddHouse">'+ic('plus',18)+'Add a house</button>'+
@@ -243,24 +243,13 @@ export function onField(el){
     if(rows&&rows[index])rows[index][el.dataset.tenantKey]=el.value;
     const err=$('[data-err="tenant_'+el.dataset.tenantGroup+'_'+index+'"]');if(err)err.textContent='';
     if(el.dataset.tenantKey==='name'){
-      const select=$('#f_tenant'),selected=select&&select.value,house=houseOf(v.houseId),profiles=v.addHouse?(v.newTenants||[]).filter(t=>t.name.trim()):tenantProfiles(house);
-      if(select)select.innerHTML='<option value="">Choose a tenant</option>'+profiles.map(t=>'<option value="'+esc(t.name)+'"'+(t.name===selected?' selected':'')+'>'+esc(t.name)+'</option>').join('');
+      const picker=$('#f_tenant'),house=houseOf(v.houseId),profiles=v.addHouse?(v.newTenants||[]).filter(t=>t.name.trim()):tenantProfiles(house);
+      if(picker)picker.firstElementChild.textContent=profiles.some(t=>t.name===v.tenant)?v.tenant:'Choose a tenant';
     }
     return;
   }
   v[k]=el.type==='checkbox'?el.checked:el.value;
-  if(k==='tenant'&&F.sp.cat==='rent'&&!F.p.id){
-    const house=F.vals.addHouse?null:houseOf(F.vals.houseId);
-    const profiles=F.vals.addHouse?F.vals.newTenants:tenantProfiles(house);
-    const tenant=profiles.find(t=>t.name===v.tenant);
-    if(tenant){
-      if(F.vals.addHouse){v.amount=tenant.rentAmount||'';}
-      else{v.amount=tenant.rentAmountP==null?'':rs(tenant.rentAmountP);}
-      v.agStart=tenant.agStart||'';v.agEnd=tenant.agEnd||'';
-      const amount=$('#f_amount'),start=$('#f_agStart'),end=$('#f_agEnd');
-      if(amount)amount.value=v.amount;if(start)start.value=v.agStart;if(end)end.value=v.agEnd;
-    }
-  }
+  if(k==='tenant'&&F.sp.cat==='rent'&&!F.p.id)applyTenant(v.tenant);
   if(k==='total'&&!el.readOnly)F.manual=true;
   if(k==='unit')F.unitTouched=true;
   if(k==='date'&&F.sp.unitDate&&!F.unitTouched&&validDate(v.date)){const pr=priceOn(F.sp.cat,v.date);if(pr!=null){v.unit=rs(pr);const ui=$('#f_unit');if(ui)ui.value=v.unit;}}
@@ -270,6 +259,18 @@ export function onField(el){
   recalc();syncShow();
   if(k==='houseId'&&F.sp.cat==='rent'){F.vals.tenant='';draw(true);}
   if(k==='houseDir'&&F.sp.cat==='rent'&&F.vals.addHouse)draw(true);
+}
+function applyTenant(name){
+  if(!F)return;
+  const v=F.vals;v.tenant=name;
+  if(F.sp.cat!=='rent'||F.p.id)return;
+  const house=v.addHouse?null:houseOf(v.houseId),profiles=v.addHouse?v.newTenants:tenantProfiles(house);
+  const tenant=profiles.find(t=>t.name===name);
+  if(!tenant)return;
+  v.amount=v.addHouse?(tenant.rentAmount||''):(tenant.rentAmountP==null?'':rs(tenant.rentAmountP));
+  v.agStart=tenant.agStart||'';v.agEnd=tenant.agEnd||'';
+  const amount=$('#f_amount'),start=$('#f_agStart'),end=$('#f_agEnd');
+  if(amount)amount.value=v.amount;if(start)start.value=v.agStart;if(end)end.value=v.agEnd;
 }
 export function validate(){
   const sp=F.sp,v=F.vals,e={};
@@ -294,7 +295,7 @@ export function showErrors(e){
   $$('.fld').forEach(f=>f.classList.remove('bad'));$$('[data-err]').forEach(x=>x.textContent='');
   let first=null;
   Object.keys(e).forEach(k=>{const el=$('[data-err="'+k+'"]');if(el){el.textContent=e[k];const f=el.closest('.fld');if(f)f.classList.add('bad');if(!first)first=f;}});
-  if(first){first.scrollIntoView({block:'center'});const i=$('input,select,textarea',first);if(i)try{i.focus({preventScroll:true});}catch(x){}}
+  if(first){first.scrollIntoView({block:'center'});const i=$('input,select,textarea,button.tenant-picker',first);if(i)try{i.focus({preventScroll:true});}catch(x){}}
 }
 export function upsert(a,o){const i=a.findIndex(x=>x.id===o.id);if(i>=0)a[i]=o;else a.push(o);}
 export function saveForm(){
@@ -320,6 +321,8 @@ export function saveForm(){
 
 Object.assign(A,{
  saveForm:saveForm,
+ tenantPicker:()=>{if(!F)return;const v=F.vals,house=houseOf(v.houseId),profiles=v.addHouse?(v.newTenants||[]).filter(t=>t.name.trim()):tenantProfiles(house);sheet('<h2>Choose a tenant</h2>'+tenantOptions(profiles,v.tenant,'tenantPick'));},
+ tenantPick:el=>{if(!F)return;applyTenant(el.dataset.value||'');closeL();draw(true);},
  tenantAdd:el=>{if(!F)return;const group=el.dataset.group,rows=group==='tenants'?F.vals.tenants:F.vals.newTenants;if(rows&&rows.length<100){rows.push(emptyTenant());draw(true);}},
  tenantRemove:el=>{if(!F)return;const group=el.dataset.group,rows=group==='tenants'?F.vals.tenants:F.vals.newTenants;if(rows&&rows.length>1){rows.splice(+el.dataset.index,1);draw(true);}},
  seg:el=>{if(!F)return;F.vals[el.dataset.k]=el.dataset.v;const f=F.sp.fields.find(x=>x.k===el.dataset.k),old=el.closest('.fld');old.outerHTML=fieldHtml(f);recalc();syncShow();},

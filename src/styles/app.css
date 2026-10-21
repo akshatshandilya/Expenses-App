@@ -124,6 +124,11 @@ h1,h2,h3,p{margin:0}
 .fld label small{font-weight:500;color:var(--ink3);margin-left:6px}
 .ro{font:700 13px var(--fd);color:var(--accent);font-variant-numeric:tabular-nums}
 input[type=text],input[type=date],input[type=month],input[type=search],select,textarea,.pre{width:100%;min-height:50px;border-radius:var(--r-ctl);border:1.5px solid var(--line);background:var(--surface);padding:0 14px}
+.tenant-picker{width:100%;min-height:50px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-radius:var(--r-ctl);border:1.5px solid var(--line);background:var(--surface);color:var(--ink);padding:0 14px;text-align:left}
+.tenant-picker .ic{color:var(--ink2);transform:rotate(90deg)}
+.tenant-options{display:flex;flex-direction:column;gap:6px}
+.tenant-choice{width:100%;min-height:50px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:0 14px;text-align:left}
+.tenant-choice[aria-selected=true]{background:var(--soft);border-color:var(--accent);color:var(--accent);font-weight:700}
 textarea{padding:12px 14px;min-height:76px;resize:vertical}
 input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(--accent) 45%,transparent);outline-offset:0;border-color:var(--accent)}
 .pre{display:flex;align-items:center;gap:8px;padding:0 14px}
@@ -138,7 +143,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
 .hint:empty{display:none}
 .err{font-size:12.5px;color:var(--bad);font-weight:600;margin-top:6px}
 .err:empty{display:none}
-.fld.bad input,.fld.bad .pre,.fld.bad select{border-color:var(--bad)}
+.fld.bad input,.fld.bad .pre,.fld.bad select,.fld.bad .tenant-picker{border-color:var(--bad)}
 .sw{display:flex;align-items:center;gap:12px;min-height:48px;font-weight:600;cursor:pointer}
 .sw input{position:absolute;opacity:0;width:1px;height:1px}
 .sw .trk{width:50px;height:30px;border-radius:999px;background:var(--line);position:relative;flex:none;transition:background .15s}

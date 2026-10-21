@@ -8,6 +8,14 @@ import {ic} from './icons.js';
 /* @end-imports */
 export const chipOf=c=>'<span class="ci" style="--c:'+esc(c.color)+'">'+ic(c.icon,22)+'</span>';
 export const hd=(t,extra)=>'<header class="hd"><button class="ib" data-act="back" aria-label="Back">'+ic('chevL')+'</button><h1>'+t+'</h1>'+(extra||'')+'</header>';
+export function tenantPicker(value,profiles,id,act){
+  const selected=profiles.find(t=>t.name===value);
+  return '<button type="button" class="tenant-picker" id="'+esc(id)+'" data-act="'+act+'" aria-haspopup="dialog"><span>'+esc(selected?selected.name:'Choose a tenant')+'</span>'+ic('chevR',18)+'</button>';
+}
+export function tenantOptions(profiles,selected,act){
+  const options=[{name:'',label:'Choose a tenant'}].concat(profiles.filter(t=>t.name.trim()).map(t=>({name:t.name,label:t.name})));
+  return '<div class="tenant-options" role="listbox" aria-label="Tenant">'+options.map(t=>'<button type="button" class="tenant-choice" role="option" aria-selected="'+(selected===t.name)+'" data-act="'+act+'" data-value="'+esc(t.name)+'"><span>'+esc(t.label)+'</span>'+(selected===t.name?ic('check',18):'')+'</button>').join('')+'</div>';
+}
 export function monNav(){return '<div class="mnav"><button class="ib" data-act="mon" data-d="-1" aria-label="Previous month">'+ic('chevL')+'</button><button class="mlabel" data-act="monNow" aria-label="Selected month '+monLabel(S.mon)+'. Tap to jump to the current month">'+ic('calendar',18)+monLabel(S.mon)+'</button><button class="ib" data-act="mon" data-d="1" aria-label="Next month">'+ic('chevR')+'</button></div>';}
 export function empty(icon,t,p,btn){return '<div class="card empty"><span class="ci">'+ic(icon,26)+'</span><h3>'+t+'</h3><p>'+p+'</p>'+(btn||'')+'</div>';}
 export function stats(a){return '<div class="stats">'+a.map(x=>'<div class="stat"><span>'+x[0]+'</span><b>'+x[1]+'</b></div>').join('')+'</div>';}
