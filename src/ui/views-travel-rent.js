@@ -3,7 +3,7 @@ import {fmtDate,fmtStamp,leftInfo,monLabel,monShort} from '../core/dates.js';
 import {fmt,mul,parseMoney,qtyStr} from '../core/money.js';
 import {counted,recsIn,sum} from '../core/rules.js';
 import {esc} from '../core/util.js';
-import {S,UI} from '../data/state.js';
+import {S,UI,houseOf} from '../data/state.js';
 import {empty,hd,monNav,recList,stats} from './components.js';
 import {ic} from './icons.js';
 import {V} from './registry.js';
@@ -63,6 +63,20 @@ export function agCards(dir){
   return '<div class="card"><h2>Agreement'+(ks.length>1?'s':'')+'</h2>'+ks.map(k=>{const r=by[k],L=leftInfo(r.x.agEnd);
     return '<div class="kv" style="align-items:center"><span style="min-width:0"><b style="color:var(--ink);font-weight:600">'+esc((houseOf(r.houseId)&&houseOf(r.houseId).name)||r.party||'Rent agreement')+'</b><br><small>'+(r.x.agStart?fmtDate(r.x.agStart)+' to ':'Ends ')+fmtDate(r.x.agEnd)+'</small></span><span class="pill '+(L.tone==='good'?'good':L.tone==='bad'?'bad':'warn')+'">'+L.t+'</span></div>';}).join('')+'</div>';
 }
+function tenantBreakdown(records){
+    const groups=new Map();
+    records.forEach(r=>{
+      const house=houseOf(r.houseId),name=(r.tenant||'Tenant not specified').trim()||'Tenant not specified';
+      const key=(r.houseId||r.party||'')+'\u0000'+name.toLowerCase();
+      let g=groups.get(key);
+      if(!g){g={house:house?house.name:(r.party||'House'),tenant:name,received:0,due:0};groups.set(key,g);}
+      if(r.status==='due')g.due+=r.amountP;else g.received+=r.amountP;
+    });
+    if(!groups.size)return '';
+    return '<div class="card"><h2>By tenant</h2>'+Array.from(groups.values()).sort((a,b)=>a.house.localeCompare(b.house)||a.tenant.localeCompare(b.tenant)).map(g=>
+      '<div class="kv"><span><b style="color:var(--ink);font-weight:600">'+esc(g.tenant)+'</b><br><small>'+esc(g.house)+'</small></span><span>'+fmt(g.received)+(g.due?'<br><small class="due">Due '+fmt(g.due)+'</small>':'')+'</span></div>'
+    ).join('')+'</div>';
+}
 V.rent=()=>{
   const mk=S.mon,P=recsIn(mk,r=>r.cat==='rent'&&r.dir==='paid'),R=recsIn(mk,r=>r.cat==='rent'&&r.dir==='received');
   const o=(dir,ico,t,d,list)=>'<button class="opt" data-act="rentPick" data-v="'+dir+'"><span class="ci" style="--c:#C0558C">'+ic(ico,24)+'</span><span style="flex:1;min-width:0"><h3>'+t+'</h3><p>'+d+'</p><span class="num">'+fmt(sum(list.filter(r=>r.status!=='due')))+'</span><span class="sub">'+list.length+' record'+(list.length===1?'':'s')+' in '+monShort(mk)+'</span></span>'+ic('chevR',20)+'</button>';
@@ -77,7 +91,7 @@ V.rentLog=()=>{
   return hd('Rent')+
    '<div class="seg" role="tablist"><button role="tab" aria-selected="'+pd+'" class="'+(pd?'on':'')+'" data-act="rentDir" data-v="paid">Rent paid</button><button role="tab" aria-selected="'+!pd+'" class="'+(!pd?'on':'')+'" data-act="rentDir" data-v="received">Rent received</button></div>'+monNav()+
    '<section class="card"><div class="eyebrow">'+(pd?'Paid':'Received')+' for '+monLabel(mk)+'</div><div class="num" style="font-size:34px;margin:4px 0 6px;'+(pd?'':'color:var(--good)')+'">'+fmt(done)+'</div>'+
-   '<div class="pills"><span class="pill">'+a.length+' record'+(a.length===1?'':'s')+'</span>'+(due?'<span class="pill warn">Due '+fmt(due)+'</span>':'')+'<span class="pill '+(pd?'':'good')+'">'+(pd?'Counted as spending':'Income, not counted as spending')+'</span></div></section>'+agCards(dir)+
+   '<div class="pills"><span class="pill">'+a.length+' record'+(a.length===1?'':'s')+'</span>'+(due?'<span class="pill warn">Due '+fmt(due)+'</span>':'')+'<span class="pill '+(pd?'':'good')+'">'+(pd?'Counted as spending':'Income, not counted as spending')+'</span></div></section>'+agCards(dir)+(pd?'':tenantBreakdown(a))+
    (a.length?recList(a):empty('key','No rent '+(pd?'paid':'received')+' for '+monLabel(mk),'Log a '+(pd?'payment to your landlord':'receipt from your tenant')+' for this month.'))+
    '<div class="cta"><button class="btn pri block" data-act="rentAdd">'+ic('plus',20)+'Log rent '+(pd?'paid':'received')+'</button></div>';
 };

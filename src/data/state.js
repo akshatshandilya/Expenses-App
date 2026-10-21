@@ -33,6 +33,12 @@ export function blank(){return{v:1,onboarded:false,theme:'system',houses:[],lock
 export const UI={tt:'fuel',wTab:'cal',wsel:null,q:'',cf:'all',sort:'dateDesc',rv:'month',rentDir:'paid',eh:'all',wbh:'all'};
 export const catOf=id=>S.cats.find(c=>c.id===id);
 export const houseOf=id=>S.houses.find(h=>h.id===id);
+export function tenantProfiles(house){
+  if(!Array.isArray(house&&house.tenants))return [];
+  return house.tenants.map(t=>typeof t==='string'?{name:t,agStart:'',agEnd:'',rentAmountP:null}:t)
+    .filter(t=>t&&typeof t.name==='string'&&t.name.trim())
+    .map(t=>({name:t.name,agStart:t.agStart||'',agEnd:t.agEnd||'',rentAmountP:Number.isInteger(t.rentAmountP)?t.rentAmountP:null}));
+}
 export function houseRentDir(house){
   if(house.rentDir==='paid'||house.rentDir==='received')return house.rentDir;
   const linked=S.records.filter(r=>r.cat==='rent'&&(r.houseId===house.id||(!r.houseId&&(r.party||'').trim().toLowerCase()===house.name.trim().toLowerCase())));

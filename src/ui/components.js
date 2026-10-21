@@ -26,6 +26,7 @@ export function recTitle(r){
 }
 export function recSub(r){
   const b=[fmtDate(r.date)];
+  if(r.cat==='rent'&&r.dir==='received'&&r.tenant)b.push(r.tenant);
   if(r.qtyM&&r.unitP)b.push(qtyStr(r.qtyM)+' × '+fmt(r.unitP));
   if(r.period)b.push('For '+monShort(r.period));
   if(r.cat==='groceries'&&r.party)b.push(r.party);

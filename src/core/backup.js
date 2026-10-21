@@ -29,8 +29,8 @@ export function validateData(d){
   }
   const ids=new Set(x.cats.map(c=>c&&c.id));
   for(const c of x.cats){if(!c||typeof c.id!=='string'||typeof c.name!=='string'||c.name.length>60||!/^#[0-9a-fA-F]{6}$/.test(c.color||'')||!ICONS[c.icon])return 'A category in the backup is not valid.';}
-  if(x.houses!==undefined&&(!Array.isArray(x.houses)||x.houses.length>200||x.houses.some(h=>!h||typeof h.id!=='string'||typeof h.name!=='string'||h.name.length>80)))return 'A house in the backup is not valid.';
-  for(const r of x.records){if(!r||typeof r.id!=='string'||!validDate(r.date)||!Number.isInteger(r.amountP)||r.amountP<0||r.amountP>MAX_MONEY*10||!ids.has(r.cat)||(r.period&&!validMonth(r.period)))return 'A record in the backup is not valid.';}
+  if(x.houses!==undefined&&(!Array.isArray(x.houses)||x.houses.length>200||x.houses.some(h=>!h||typeof h.id!=='string'||typeof h.name!=='string'||h.name.length>80||(h.tenants!==undefined&&(!Array.isArray(h.tenants)||h.tenants.length>100||h.tenants.some(t=>typeof t==='string'?(!t.trim()||t.length>80):(!t||typeof t.name!=='string'||!t.name.trim()||t.name.length>80||(t.agStart&&!validDate(t.agStart))||(t.agEnd&&!validDate(t.agEnd))||(t.agStart&&t.agEnd&&t.agEnd<=t.agStart)||(t.rentAmountP!==undefined&&t.rentAmountP!==null&&(!Number.isInteger(t.rentAmountP)||t.rentAmountP<=0||t.rentAmountP>MAX_MONEY)))))))))return 'A house in the backup is not valid.';
+  for(const r of x.records){if(!r||typeof r.id!=='string'||!validDate(r.date)||!Number.isInteger(r.amountP)||r.amountP<0||r.amountP>MAX_MONEY*10||!ids.has(r.cat)||(r.period&&!validMonth(r.period))||(r.tenant!==undefined&&(typeof r.tenant!=='string'||r.tenant.length>80)))return 'A record in the backup is not valid.';}
   for(const r of x.dist){if(!r||typeof r.id!=='string'||!validDate(r.date)||!Number.isInteger(r.kmM)||r.kmM<0)return 'A journey in the backup is not valid.';}
   return null;
 }

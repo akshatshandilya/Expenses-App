@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {parseMoney,parseQty,mul,fmt,rs} from '../../src/core/money.js';
 import {addMonths,validDate,validMonth,pad} from '../../src/core/dates.js';
-import {S,replaceState,blank,migrateState} from '../../src/data/state.js';
+import {S,replaceState,blank,migrateState,tenantProfiles} from '../../src/data/state.js';
 import {spent,catSpent,priceOn,setPrice,sum} from '../../src/core/rules.js';
 import {buildCsv,csvCell} from '../../src/core/csv.js';
 
@@ -63,9 +63,15 @@ test('legacy state gains Auto and Cabs routes once without undoing a later delet
   assert.equal(migrateState(old),false);
   assert.equal(old.cats.some(c=>c.id==='cab'),false);
 });
+test('tenant profiles normalize legacy names and retain agreement data',()=>{
+  assert.deepEqual(tenantProfiles({tenants:['Asha Rao',{name:'Ben Singh',agStart:'2026-01-01',rentAmountP:700000}]}),[
+    {name:'Asha Rao',agStart:'',agEnd:'',rentAmountP:null},
+    {name:'Ben Singh',agStart:'2026-01-01',agEnd:'',rentAmountP:700000}
+  ]);
+});
 test('CSV export neutralises spreadsheet formulas and quotes properly',()=>{
   assert.match(csvCell('=SUM(A1)'),/^"?'=/);assert.match(csvCell('+1'),/^"?'\+/);assert.match(csvCell('@x'),/^"?'@/);
   assert.equal(csvCell('a,b'),'"a,b"');assert.equal(csvCell('say "hi"'),'"say ""hi"""');
-  replaceState(blank());S.records=[rec({cat:'water',date:'2026-10-01',amountP:12000,notes:'=1+1'})];
-  const out=buildCsv();assert.ok(out.split('\n').length>=2);assert.ok(!/(^|,)=1\+1/.test(out));
+  replaceState(blank());S.houses=[{id:'h1',name:'Maple Court'}];S.records=[rec({cat:'water',date:'2026-10-01',amountP:12000,notes:'=1+1'}),rec({cat:'rent',dir:'received',houseId:'h1',party:'Maple Court',tenant:'Asha Rao',date:'2026-10-01',period:'2026-10',amountP:12000})];
+  const out=buildCsv();assert.ok(out.split('\n').length>=3);assert.ok(!/(^|,)=1\+1/.test(out));assert.match(out.split('\n')[0],/tenant/);assert.ok(out.includes('Asha Rao'));
 });
