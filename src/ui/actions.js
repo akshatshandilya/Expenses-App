@@ -20,6 +20,16 @@ function routesHtml(){
    S.routes.map(r=>'<div class="rtrow"><input type="text" id="rt_'+esc(r.id)+'" data-rt="'+esc(r.id)+'" value="'+esc(r.name)+'" maxlength="40" aria-label="Route name" autocomplete="off">'+(r.fixed?'<span class="fix">Always last</span>':'<button class="ib flat" data-act="delRoute" data-id="'+esc(r.id)+'" aria-label="Remove '+esc(r.name)+'">'+ic('trash',20)+'</button>')+'</div>').join('')+
    '<button class="btn soft block" data-act="addRoute" style="margin-top:4px">'+ic('plus',20)+'Add a route</button><div class="row2"><button class="btn pri" data-act="closeL">Done</button></div>';
 }
+function resetRentStatus(card){
+  const toggle=card.querySelector('[data-act="rentToggle"]');
+  if(toggle)toggle.checked=false;
+  const label=card.querySelector('[data-rent-toggle-label]');
+  if(label)label.textContent='Payment due';
+  const pill=card.querySelector('.rent-status-pill');
+  if(pill){pill.classList.remove('good');pill.classList.add('warn');pill.textContent='Payment due';}
+  const entry=card.querySelector('[data-rent-status-entry]');
+  if(entry)entry.innerHTML='';
+}
 Object.assign(A,{
  back:()=>back(),
  tab:el=>tab(el.dataset.t),
@@ -91,24 +101,24 @@ Object.assign(A,{
    }
    r.date=date;r.status='paid';persist();draw(true);toast(dir==='received'?'Marked as received':'Marked as paid');
  },
- rentStatusCancel:el=>{const card=el.closest('.rent-due-card');if(card){const toggle=card.querySelector('[data-act="rentToggle"]');if(toggle){toggle.checked=false;const label=card.querySelector('[data-rent-toggle-label]');if(label)label.textContent='Payment due';}const pill=card.querySelector('.rent-status-pill');if(pill){pill.classList.remove('good');pill.classList.add('warn');pill.textContent='Payment due';}card.querySelector('.rent-paid-entry')?.remove();}},
+ rentStatusCancel:el=>{const card=el.closest('.rent-due-card');if(card)resetRentStatus(card);},
  rentToggle:el=>{
    const {dir,house:houseId,period,tenant}=el.dataset,h=houseOf(houseId);if(!h)return;
    let r=S.records.find(x=>x.cat==='rent'&&x.dir===dir&&(x.period||x.date.slice(0,7))===period&&(x.houseId===h.id||(!x.houseId&&(x.party||'').trim().toLowerCase()===h.name.trim().toLowerCase()))&&(dir==='paid'||(x.tenant||'').trim().toLowerCase()===(tenant||'').trim().toLowerCase()));
    if(el.checked){
      const card=el.closest('.rent-due-card');if(!card)return;
-     if(card.querySelector('.rent-paid-entry'))return;
+     const entry=card.querySelector('[data-rent-status-entry]');if(!entry||entry.querySelector('.rent-paid-entry'))return;
      const positiveLabel=dir==='received'?'Received':'Paid',pill=card.querySelector('.rent-status-pill'),toggleLabel=card.querySelector('[data-rent-toggle-label]');
      if(pill){pill.classList.remove('warn');pill.classList.add('good');pill.textContent=positiveLabel;}
      if(toggleLabel)toggleLabel.textContent=positiveLabel;
      const date=r&&r.date|| (period===curMonth()?today():period+'-01');
      const dateLabel=dir==='received'?'Received on':'Paid on',saveLabel=dir==='received'?'Save received':'Save paid';
-     el.insertAdjacentHTML('afterend','<div class="rent-paid-entry"><label>'+dateLabel+'<input type="date" data-act="rentStatusDate" value="'+esc(date)+'" min="2000-01-01" max="2100-12-31"></label><div class="rent-paid-actions"><button type="button" class="btn pri" data-act="rentStatusSave" data-dir="'+dir+'" data-house="'+esc(houseId)+'" data-period="'+esc(period)+'" data-tenant="'+esc(tenant||'')+'">'+saveLabel+'</button><button type="button" class="btn" data-act="rentStatusCancel">Cancel</button></div></div>');
+     entry.innerHTML='<div class="rent-paid-entry"><div class="fld rent-date-field"><label>'+dateLabel+'<span class="ro" data-rent-date-display>'+fmtDate(date)+'</span></label><input type="date" data-act="rentStatusDate" aria-label="'+dateLabel+'" value="'+esc(date)+'" min="2000-01-01" max="2100-12-31"></div><div class="rent-paid-actions"><button type="button" class="btn pri" data-act="rentStatusSave" data-dir="'+dir+'" data-house="'+esc(houseId)+'" data-period="'+esc(period)+'" data-tenant="'+esc(tenant||'')+'">'+saveLabel+'</button><button type="button" class="btn" data-act="rentStatusCancel">Cancel</button></div></div>';
      return;
    }
    if(!el.checked){
-     const card=el.closest('.rent-due-card'),pending=card&&card.querySelector('.rent-paid-entry');
-     if(pending){pending.remove();return;}
+     const card=el.closest('.rent-due-card'),pending=card&&card.querySelector('[data-rent-status-entry] .rent-paid-entry');
+     if(pending){resetRentStatus(card);return;}
    }
    const profile=Array.isArray(h.tenants)?h.tenants.find(t=>typeof t!=='string'&&t.name===tenant):null;
    if(!r){

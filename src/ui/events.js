@@ -1,6 +1,7 @@
 import {A} from './registry.js';
 import {S,UI,persist} from '../data/state.js';
 import {$} from '../core/util.js';
+import {fmtDate} from '../core/dates.js';
 import {layer,closeL,draw,toast} from './nav.js';
 import {onField,refreshCabRoutes} from './entry.js';
 import {onQuickInput} from './quick.js';
@@ -11,9 +12,15 @@ import {DLG} from '../data/state.js';
 
 export function bindEvents(){
   const shell=$('#shell');
-  shell.addEventListener('click',e=>{const el=e.target.closest('[data-act]');if(!el||el.disabled)return;const f=A[el.dataset.act];if(f)f(el,e);});
+  shell.addEventListener('click',e=>{const el=e.target.closest('[data-act]');if(!el||el.disabled||el.dataset.act==='rentToggle')return;const f=A[el.dataset.act];if(f)f(el,e);});
   function onInput(e){
     const el=e.target;
+    if(el.dataset.act==='rentToggle'){if(e.type==='change')A.rentToggle(el);return;}
+    if(el.dataset.act==='rentStatusDate'){
+      const display=el.closest('.rent-date-field')?.querySelector('[data-rent-date-display]');
+      if(display)display.textContent=fmtDate(el.value);
+      return;
+    }
     if(el.dataset.rt){
       const r=S.routes.find(x=>x.id===el.dataset.rt);if(!r)return;
       const v=el.value.trim(),dup=S.routes.some(x=>x.id!==r.id&&x.name.toLowerCase()===v.toLowerCase());
