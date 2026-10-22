@@ -18,6 +18,10 @@ await page.goto(`http://localhost:${srv.address().port}/`);await page.waitForSel
 await page.click('[data-act=start]');await page.click('[data-act=openCat][data-id=rent]');
 ok('Rent landing keeps its Rent Paid and Rent Received cards',await screen().then(t=>t.includes('Rent paid')&&t.includes('Rent received')));
 await page.click('[data-act=rentPick][data-v=paid]');
+ok('Rent Paid and Rent Received switcher appears above the month selector',await page.locator('[data-act=rentDir]').count()===2&&await page.locator('[data-act=rentDir]').nth(0).innerText().then(t=>t==='Rent paid')&&await page.locator('[data-act=rentDir]').nth(1).innerText().then(t=>t==='Rent received'));
+await page.click('[data-act=rentDir][data-v=received]');
+ok('Rent Received switcher changes the selected direction',await page.locator('[data-act=rentDir][data-v=received]').getAttribute('aria-selected').then(v=>v==='true')&&await screen().then(t=>t.includes('Rent received ·')));
+await page.click('[data-act=rentDir][data-v=paid]');
 ok('Rent Paid opens house filters and has no current-month log button',await screen().then(t=>t.includes('All houses')&&!t.includes('Log rent in advance')));
 await page.click('[data-act=houses]');await page.click('[data-act=addHouse]');
 await page.fill('#f_name','Hillview Apartment');await page.fill('#f_addr','12 Hillview Road');await page.fill('#f_rentAmount','8700');

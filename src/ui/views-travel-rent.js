@@ -109,8 +109,9 @@ function rentLog(){
       if(Number.isInteger(amount)&&amount>0)due+=amount;
     });
   });
+  const directionTabs='<div class="seg" role="tablist"><button role="tab" aria-selected="'+pd+'" class="'+(pd?'on':'')+'" data-act="rentDir" data-v="paid">Rent paid</button><button role="tab" aria-selected="'+!pd+'" class="'+(!pd?'on':'')+'" data-act="rentDir" data-v="received">Rent received</button></div>';
   return hd('Rent','<button class="pchip" data-act="houses" aria-label="Manage houses">Houses'+ic('edit',16)+'</button>')+
-    monNav()+chips+
+    directionTabs+monNav()+chips+
     '<section class="card"><div class="eyebrow">'+(pd?'Rent paid':'Rent received')+' · '+monLabel(period)+'</div><div class="num" style="font-size:32px;margin:4px 0 6px;'+(pd?'':'color:var(--good)')+'">'+fmt(total)+'</div><div class="pills"><span class="pill '+(due?'warn':'good')+'">'+(due?'Due '+fmt(due):'No overdue balance')+'</span><span class="pill">'+periodRecords.length+' saved record'+(periodRecords.length===1?'':'s')+'</span></div></section>'+
     (houses.length?selected:empty('home','No houses for '+(pd?'rent paid':'rent received'),'Add a house in Settings → Houses to start tracking rent.','<button class="btn pri" data-act="houses">Manage houses</button>'))+
     (periodRecords.length?'<div class="card"><h2>Rent records</h2><div class="list">'+recList(periodRecords)+'</div></div>':'')+
