@@ -1,5 +1,5 @@
 /* @auto-imports */
-import {addMonths,curMonth,fmtClock,fmtDate,fmtStamp,monLabel,pad,today,weekday} from '../core/dates.js';
+import {addMonths,curMonth,fmtClock,fmtDate,fmtStamp,monLabel,pad,today,validDate,weekday} from '../core/dates.js';
 import {MAX_UNIT,fmt,mul,parseMoney,qtyStr} from '../core/money.js';
 import {setPrice} from '../core/rules.js';
 import {$,esc,uid} from '../core/util.js';
@@ -77,9 +77,36 @@ Object.assign(A,{
  rentDir:el=>{UI.rentDir=el.dataset.v;UI.rentHouse='all';draw(true);},
  rentHouse:el=>{UI.rentHouse=el.dataset.id;draw(true);},
  rentEdit:el=>{const id=el.dataset.id;closeL();openEntry(id?{spec:'rent',id,dir:el.dataset.dir}:{spec:'rent',dir:el.dataset.dir,houseId:el.dataset.house,tenant:el.dataset.tenant,pre:{period:el.dataset.period}});},
+ rentStatusSave:el=>{
+   const card=el.closest('.rent-due-card'),date=card&&card.querySelector('[data-act="rentStatusDate"]')?.value;
+   if(!validDate(date)){toast('Enter a valid rent date','bad');return;}
+   const {dir,house:houseId,period,tenant}=el.dataset,h=houseOf(houseId);if(!h)return;
+   let r=S.records.find(x=>x.cat==='rent'&&x.dir===dir&&(x.period||x.date.slice(0,7))===period&&(x.houseId===h.id||(!x.houseId&&(x.party||'').trim().toLowerCase()===h.name.trim().toLowerCase()))&&(dir==='paid'||(x.tenant||'').trim().toLowerCase()===(tenant||'').trim().toLowerCase()));
+   const profile=Array.isArray(h.tenants)?h.tenants.find(t=>typeof t!=='string'&&t.name===tenant):null;
+   if(!r){
+     const amount=dir==='paid'?h.rentAmountP:profile&&profile.rentAmountP;
+     if(!Number.isInteger(amount)||amount<=0){toast('Set the monthly rent in Houses first','bad');draw(true);return;}
+     r={id:uid(),ts:Date.now(),cat:'rent',dir,date,period,amountP:amount,houseId:h.id,party:h.name,tenant:dir==='received'?tenant:'',notes:'',x:{dueBy:(profile||h).dueBy||'first',dueDay:(profile||h).dueDay||null}};
+     S.records.push(r);
+   }
+   r.date=date;r.status='paid';persist();draw(true);toast(dir==='received'?'Marked as received':'Marked as paid');
+ },
+ rentStatusCancel:el=>{const card=el.closest('.rent-due-card');if(card){const toggle=card.querySelector('[data-act="rentToggle"]');if(toggle)toggle.checked=false;card.querySelector('.rent-paid-entry')?.remove();}},
  rentToggle:el=>{
    const {dir,house:houseId,period,tenant}=el.dataset,h=houseOf(houseId);if(!h)return;
    let r=S.records.find(x=>x.cat==='rent'&&x.dir===dir&&(x.period||x.date.slice(0,7))===period&&(x.houseId===h.id||(!x.houseId&&(x.party||'').trim().toLowerCase()===h.name.trim().toLowerCase()))&&(dir==='paid'||(x.tenant||'').trim().toLowerCase()===(tenant||'').trim().toLowerCase()));
+   if(el.checked){
+     const card=el.closest('.rent-due-card');if(!card)return;
+     if(card.querySelector('.rent-paid-entry'))return;
+     const date=r&&r.date|| (period===curMonth()?today():period+'-01');
+     const dateLabel=dir==='received'?'Received on':'Paid on',saveLabel=dir==='received'?'Save received':'Save paid';
+     el.insertAdjacentHTML('afterend','<div class="rent-paid-entry"><label>'+dateLabel+'<input type="date" data-act="rentStatusDate" value="'+esc(date)+'" min="2000-01-01" max="2100-12-31"></label><div class="rent-paid-actions"><button type="button" class="btn pri" data-act="rentStatusSave" data-dir="'+dir+'" data-house="'+esc(houseId)+'" data-period="'+esc(period)+'" data-tenant="'+esc(tenant||'')+'">'+saveLabel+'</button><button type="button" class="btn" data-act="rentStatusCancel">Cancel</button></div></div>');
+     return;
+   }
+   if(!el.checked){
+     const card=el.closest('.rent-due-card'),pending=card&&card.querySelector('.rent-paid-entry');
+     if(pending){pending.remove();return;}
+   }
    const profile=Array.isArray(h.tenants)?h.tenants.find(t=>typeof t!=='string'&&t.name===tenant):null;
    if(!r){
      const amount=dir==='paid'?h.rentAmountP:profile&&profile.rentAmountP;

@@ -76,6 +76,7 @@ function rentStatusCard(h,dir,period,tenant,profile,rec,withEdit=true){
   const futureAction=future&&!rec?'<button class="btn soft block" data-act="rentEdit" data-house="'+esc(h.id)+'" data-dir="'+dir+'" data-period="'+period+'" data-tenant="'+esc(tenant||'')+'">'+ic('plus',18)+'Log rent in advance</button>':'';
   return '<div class="card rent-due-card"><div class="kv" style="align-items:center"><span><b style="color:var(--ink);font-weight:600">'+esc(tenant||(dir==='paid'?'Rent payment':h.name))+'</b>'+(tenant?'<br><small>'+esc(h.name)+' · Tenant</small>':'')+'</span><span class="pill '+(paid?'good':future&&!rec?'':'warn')+'">'+status+'</span>'+(withEdit?editRentButton(h,dir,period,tenant,rec,profile):'')+'</div>'+
     (hasAmount?'<div class="kv"><span>Monthly rent</span><span>'+fmt(amount)+'</span></div>':'<p class="sub">Set a monthly rent amount in Houses settings to track this payment.</p>')+
+    (paid&&rec?'<div class="kv"><span>'+(dir==='received'?'Received on':'Paid on')+'</span><span>'+fmtDate(rec.date)+'</span></div>':'')+
     '<div class="kv"><span>Payment Due By</span><span>'+esc(due)+'</span></div>'+agreement+toggle+futureAction+'</div>';
 }
 function rentHouseCard(h,dir,period){

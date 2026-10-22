@@ -124,6 +124,7 @@ h1,h2,h3,p{margin:0}
 .fld label small{font-weight:500;color:var(--ink3);margin-left:6px}
 .ro{font:700 13px var(--fd);color:var(--accent);font-variant-numeric:tabular-nums}
 input[type=text],input[type=date],input[type=month],input[type=search],select,textarea,.pre{width:100%;min-height:50px;border-radius:var(--r-ctl);border:1.5px solid var(--line);background:var(--surface);padding:0 14px}
+select.device-theme{color-scheme:light dark;appearance:auto;background-color:Canvas;color:CanvasText}
 .tenant-picker{width:100%;min-height:50px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-radius:var(--r-ctl);border:1.5px solid var(--line);background:var(--surface);color:var(--ink);padding:0 14px;text-align:left}
 .tenant-picker .ic{color:var(--ink2);transform:rotate(90deg)}
 .tenant-options{display:flex;flex-direction:column;gap:6px}
@@ -151,6 +152,10 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
 .sw input:checked+.trk{background:var(--accent)}
 .sw input:checked+.trk::after{transform:translateX(20px)}
 .sw input:focus-visible+.trk{outline:3px solid var(--accent);outline-offset:2px}
+.rent-paid-entry{margin-top:10px;padding:12px;border-radius:var(--r-ctl);background:var(--s2)}
+.rent-paid-entry label{display:block;font-weight:600;font-size:13.5px;margin-bottom:6px}
+.rent-paid-actions{display:flex;gap:8px;margin-top:10px}
+.rent-paid-actions .btn{flex:1;min-height:44px}
 .calc{background:var(--soft);border-radius:var(--r-card);padding:14px;margin-bottom:16px}
 .calc .formula{font-size:13.5px;color:var(--ink2);font-variant-numeric:tabular-nums}
 .calc .pre{background:transparent;border:0;padding:0;min-height:58px}
