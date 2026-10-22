@@ -32,7 +32,7 @@ await page.click('[data-act=back]');await page.click('[data-act=rentHouse][data-
 ok('selected Rent Paid house shows its payment due card and custom due day',await screen().then(t=>t.includes('Payment due')&&t.includes('₹8,700')&&t.includes('12th of every month')));
 ok('new Rent Paid cards default to off',await page.locator('[data-act=rentToggle]').isChecked().then(v=>!v));
 await page.locator('[data-act=rentToggle]').click();
-ok('turning on Paid reveals a Paid on date field and save action',await page.locator('[data-act=rentStatusDate]').count()===1&&await page.locator('[data-act=rentStatusSave]').innerText().then(t=>t==='Save paid')&&await page.locator('.rent-paid-entry').innerText().then(t=>t.includes('Paid on')));
+ok('turning on Paid immediately shows positive status before Paid on date entry',await page.locator('[data-act=rentToggle]').isChecked()&&await page.locator('[data-rent-toggle-label]').innerText().then(t=>t==='Paid')&&await page.locator('.rent-status-pill').innerText().then(t=>t==='Paid')&&await page.locator('[data-act=rentStatusDate]').count()===1&&await page.locator('[data-act=rentStatusSave]').innerText().then(t=>t==='Save paid')&&await page.locator('.rent-paid-entry').innerText().then(t=>t.includes('Paid on')));
 const paidDate=await page.locator('[data-act=rentToggle]').getAttribute('data-period').then(p=>p+'-15');
 await page.locator('[data-act=rentStatusDate]').fill(paidDate);
 await page.locator('[data-act=rentStatusSave]').click();
@@ -61,7 +61,7 @@ await page.click('[data-act=back]');await page.click('[data-act=rentHouse][data-
 ok('Rent Received shows tenant details, monthly amount and Payment Due By',await screen().then(t=>t.includes('Asha Rao')&&t.includes('₹12,500')&&t.includes('7th of every month')&&t.includes('Payment due')));
 ok('current-month rent screen has no Log rent button',await page.locator('[data-act=rentAdd]').count()===0);
 await page.locator('[data-act=rentToggle]').click();
-ok('turning on Received reveals a Received on date field and save action',await page.locator('[data-act=rentStatusDate]').count()===1&&await page.locator('[data-act=rentStatusSave]').innerText().then(t=>t==='Save received')&&await page.locator('.rent-paid-entry').innerText().then(t=>t.includes('Received on')));
+ok('turning on Received immediately shows positive status before Received on date entry',await page.locator('[data-act=rentToggle]').isChecked()&&await page.locator('[data-rent-toggle-label]').innerText().then(t=>t==='Received')&&await page.locator('.rent-status-pill').innerText().then(t=>t==='Received')&&await page.locator('[data-act=rentStatusDate]').count()===1&&await page.locator('[data-act=rentStatusSave]').innerText().then(t=>t==='Save received')&&await page.locator('.rent-paid-entry').innerText().then(t=>t.includes('Received on')));
 const receivedDate=await page.locator('[data-act=rentToggle]').getAttribute('data-period').then(p=>p+'-15');
 await page.locator('[data-act=rentStatusDate]').fill(receivedDate);
 await page.locator('[data-act=rentStatusSave]').click();

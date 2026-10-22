@@ -91,13 +91,16 @@ Object.assign(A,{
    }
    r.date=date;r.status='paid';persist();draw(true);toast(dir==='received'?'Marked as received':'Marked as paid');
  },
- rentStatusCancel:el=>{const card=el.closest('.rent-due-card');if(card){const toggle=card.querySelector('[data-act="rentToggle"]');if(toggle)toggle.checked=false;card.querySelector('.rent-paid-entry')?.remove();}},
+ rentStatusCancel:el=>{const card=el.closest('.rent-due-card');if(card){const toggle=card.querySelector('[data-act="rentToggle"]');if(toggle){toggle.checked=false;const label=card.querySelector('[data-rent-toggle-label]');if(label)label.textContent='Payment due';}const pill=card.querySelector('.rent-status-pill');if(pill){pill.classList.remove('good');pill.classList.add('warn');pill.textContent='Payment due';}card.querySelector('.rent-paid-entry')?.remove();}},
  rentToggle:el=>{
    const {dir,house:houseId,period,tenant}=el.dataset,h=houseOf(houseId);if(!h)return;
    let r=S.records.find(x=>x.cat==='rent'&&x.dir===dir&&(x.period||x.date.slice(0,7))===period&&(x.houseId===h.id||(!x.houseId&&(x.party||'').trim().toLowerCase()===h.name.trim().toLowerCase()))&&(dir==='paid'||(x.tenant||'').trim().toLowerCase()===(tenant||'').trim().toLowerCase()));
    if(el.checked){
      const card=el.closest('.rent-due-card');if(!card)return;
      if(card.querySelector('.rent-paid-entry'))return;
+     const positiveLabel=dir==='received'?'Received':'Paid',pill=card.querySelector('.rent-status-pill'),toggleLabel=card.querySelector('[data-rent-toggle-label]');
+     if(pill){pill.classList.remove('warn');pill.classList.add('good');pill.textContent=positiveLabel;}
+     if(toggleLabel)toggleLabel.textContent=positiveLabel;
      const date=r&&r.date|| (period===curMonth()?today():period+'-01');
      const dateLabel=dir==='received'?'Received on':'Paid on',saveLabel=dir==='received'?'Save received':'Save paid';
      el.insertAdjacentHTML('afterend','<div class="rent-paid-entry"><label>'+dateLabel+'<input type="date" data-act="rentStatusDate" value="'+esc(date)+'" min="2000-01-01" max="2100-12-31"></label><div class="rent-paid-actions"><button type="button" class="btn pri" data-act="rentStatusSave" data-dir="'+dir+'" data-house="'+esc(houseId)+'" data-period="'+esc(period)+'" data-tenant="'+esc(tenant||'')+'">'+saveLabel+'</button><button type="button" class="btn" data-act="rentStatusCancel">Cancel</button></div></div>');
