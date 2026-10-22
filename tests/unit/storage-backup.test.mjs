@@ -58,12 +58,14 @@ test('backup routes are optional for legacy files but validated when present',()
   assert.match(validateData(data),/fixed Others route/);
 });
 test('backup validation accepts tenant rosters and rejects malformed tenant data',()=>{
-  const data={app:'expenses',v:1,data:Object.assign(blank(),{houses:[{id:'h1',name:'Main house',tenants:[{name:'Asha Rao',agStart:'2026-01-01',agEnd:'2026-12-31',rentAmountP:12000000},{name:'Ben Singh',rentAmountP:7000000}]}],records:[{id:'r1',cat:'rent',dir:'received',date:'2026-10-01',period:'2026-10',amountP:120000,tenant:'Asha Rao'}]})};
+  const data={app:'expenses',v:1,data:Object.assign(blank(),{houses:[{id:'h1',name:'Main house',rentDir:'received',tenants:[{name:'Asha Rao',agStart:'2026-01-01',agEnd:'2026-12-31',rentAmountP:12000000,dueBy:'custom',dueDay:12},{name:'Ben Singh',rentAmountP:7000000,dueBy:'seventh'}]},{id:'h2',name:'Paying house',rentDir:'paid',rentAmountP:1500000,dueBy:'first'}],records:[{id:'r1',cat:'rent',dir:'received',date:'2026-10-01',period:'2026-10',amountP:120000,tenant:'Asha Rao'}]})};
   assert.equal(validateData(data),null);
   data.data.houses[0].tenants=['Legacy tenant'];
   assert.equal(validateData(data),null);
   data.data.houses[0].tenants=[{name:''}];
   assert.match(validateData(data),/house in the backup is not valid/);
+  data.data.houses[0].tenants=[{name:'Asha Rao',dueBy:'custom',dueDay:32}];
+  assert.match(validateData(data),/payment due day/);
   data.data.houses[0].tenants=['Asha Rao'];
   data.data.records[0].tenant={name:'Asha Rao'};
   assert.match(validateData(data),/record in the backup is not valid/);

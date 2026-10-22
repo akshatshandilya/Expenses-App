@@ -73,9 +73,22 @@ Object.assign(A,{
    const bills=S.records.filter(r=>(r.cat==='electricity'||r.cat==='waterbill')&&r.houseId===h.id).length,rents=S.records.filter(r=>r.cat==='rent'&&r.houseId===h.id).length;
    ask({title:'Delete '+h.name+'?',msg:(bills?bills+' utility bill'+(bills===1?'':'s')+' will be deleted. ':'')+(rents?'Rent records will be kept and unlinked from this house. ':'')+(!bills&&!rents?'This house has no linked records. ':'')+'This cannot be undone.',ok:'Delete house',danger:true,fn:()=>{S.records=S.records.filter(r=>!((r.cat==='electricity'||r.cat==='waterbill')&&r.houseId===h.id));S.records.forEach(r=>{if(r.cat==='rent'&&r.houseId===h.id)delete r.houseId;});S.houses=S.houses.filter(x=>x.id!==h.id);if(UI.eh===h.id)UI.eh='all';persist();closeL();draw(true);toast('House deleted');}});},
  rentAddHouse:()=>toggleRentHouse(),
- rentPick:el=>{UI.rentDir=el.dataset.v;go('rentLog');},
- rentDir:el=>{UI.rentDir=el.dataset.v;draw(true);},
- rentAdd:()=>openQuick({cat:'rent',dir:UI.rentDir}),
+ rentPick:el=>{UI.rentDir=el.dataset.v;UI.rentHouse='all';go('rentLog');},
+ rentDir:el=>{UI.rentDir=el.dataset.v;UI.rentHouse='all';draw(true);},
+ rentHouse:el=>{UI.rentHouse=el.dataset.id;draw(true);},
+ rentEdit:el=>{const id=el.dataset.id;closeL();openEntry(id?{spec:'rent',id,dir:el.dataset.dir}:{spec:'rent',dir:el.dataset.dir,houseId:el.dataset.house,tenant:el.dataset.tenant,pre:{period:el.dataset.period}});},
+ rentToggle:el=>{
+   const {dir,house:houseId,period,tenant}=el.dataset,h=houseOf(houseId);if(!h)return;
+   let r=S.records.find(x=>x.cat==='rent'&&x.dir===dir&&(x.period||x.date.slice(0,7))===period&&(x.houseId===h.id||(!x.houseId&&(x.party||'').trim().toLowerCase()===h.name.trim().toLowerCase()))&&(dir==='paid'||(x.tenant||'').trim().toLowerCase()===(tenant||'').trim().toLowerCase()));
+   const profile=Array.isArray(h.tenants)?h.tenants.find(t=>typeof t!=='string'&&t.name===tenant):null;
+   if(!r){
+     const amount=dir==='paid'?h.rentAmountP:profile&&profile.rentAmountP;
+     if(!Number.isInteger(amount)||amount<=0){toast('Set the monthly rent in Houses first','bad');draw(true);return;}
+     r={id:uid(),ts:Date.now(),cat:'rent',dir,date:period===curMonth()?today():period+'-01',period,amountP:amount,houseId:h.id,party:h.name,tenant:dir==='received'?tenant:'',notes:'',x:{dueBy:(profile||h).dueBy||'first',dueDay:(profile||h).dueDay||null}};
+     S.records.push(r);
+   }
+   r.status=el.checked?'paid':'due';if(el.checked&&period===S.mon)r.date=today();persist();draw(true);toast(el.checked?(dir==='received'?'Marked as received':'Marked as paid'):'Marked as due');
+ },
  theme:el=>{S.theme=el.dataset.v;applyTheme();persist();draw(true);},
  lockSetup:()=>go('lockSetup'),
  privacy:()=>go('privacy'),

@@ -1,9 +1,9 @@
 /* @auto-imports */
-import {fmtDate,fmtStamp,leftInfo,monLabel,monShort} from '../core/dates.js';
+import {curMonth,fmtDate,fmtStamp,monLabel} from '../core/dates.js';
 import {fmt,mul,parseMoney,qtyStr} from '../core/money.js';
 import {counted,recsIn,sum} from '../core/rules.js';
 import {esc} from '../core/util.js';
-import {S,UI,houseOf} from '../data/state.js';
+import {S,UI,houseOf,houseRentDir,tenantProfiles,paymentDueLabel} from '../data/state.js';
 import {empty,hd,monNav,recList,stats} from './components.js';
 import {ic} from './icons.js';
 import {V} from './registry.js';
@@ -56,42 +56,65 @@ V.cab=()=>{
 };
 
 /* rent */
-export function agCards(dir){
-  const by={};
-  S.records.filter(r=>r.cat==='rent'&&r.dir===dir&&r.x&&r.x.agEnd).sort((x,y)=>x.date<y.date?-1:x.date>y.date?1:(x.ts||0)-(y.ts||0)).forEach(r=>{by[(r.houseId||r.party||'').trim().toLowerCase()]=r;});
-  const ks=Object.keys(by);if(!ks.length)return '';
-  return '<div class="card"><h2>Agreement'+(ks.length>1?'s':'')+'</h2>'+ks.map(k=>{const r=by[k],L=leftInfo(r.x.agEnd);
-    return '<div class="kv" style="align-items:center"><span style="min-width:0"><b style="color:var(--ink);font-weight:600">'+esc((houseOf(r.houseId)&&houseOf(r.houseId).name)||r.party||'Rent agreement')+'</b><br><small>'+(r.x.agStart?fmtDate(r.x.agStart)+' to ':'Ends ')+fmtDate(r.x.agEnd)+'</small></span><span class="pill '+(L.tone==='good'?'good':L.tone==='bad'?'bad':'warn')+'">'+L.t+'</span></div>';}).join('')+'</div>';
+export function matchesRentHouse(r,h){
+  return r.houseId===h.id||(!r.houseId&&(r.party||'').trim().toLowerCase()===h.name.trim().toLowerCase());
 }
-function tenantBreakdown(records){
-    const groups=new Map();
-    records.forEach(r=>{
-      const house=houseOf(r.houseId),name=(r.tenant||'Tenant not specified').trim()||'Tenant not specified';
-      const key=(r.houseId||r.party||'')+'\u0000'+name.toLowerCase();
-      let g=groups.get(key);
-      if(!g){g={house:house?house.name:(r.party||'House'),tenant:name,received:0,due:0};groups.set(key,g);}
-      if(r.status==='due')g.due+=r.amountP;else g.received+=r.amountP;
-    });
-    if(!groups.size)return '';
-    return '<div class="card"><h2>By tenant</h2>'+Array.from(groups.values()).sort((a,b)=>a.house.localeCompare(b.house)||a.tenant.localeCompare(b.tenant)).map(g=>
-      '<div class="kv"><span><b style="color:var(--ink);font-weight:600">'+esc(g.tenant)+'</b><br><small>'+esc(g.house)+'</small></span><span>'+fmt(g.received)+(g.due?'<br><small class="due">Due '+fmt(g.due)+'</small>':'')+'</span></div>'
-    ).join('')+'</div>';
+function rentRecord(h,dir,period,tenant){
+  return S.records.find(r=>r.cat==='rent'&&r.dir===dir&&(r.period||r.date.slice(0,7))===period&&matchesRentHouse(r,h)&&(dir==='paid'||(r.tenant||'').trim().toLowerCase()===(tenant||'').trim().toLowerCase()))||null;
 }
-V.rent=()=>{
+function editRentButton(h,dir,period,tenant,rec,profile){
+  if(period>curMonth()&&!rec)return '';
+  const label=tenant?' for '+tenant:'';
+  return '<button class="ib flat" data-act="rentEdit" data-id="'+esc(rec&&rec.id||'')+'" data-house="'+esc(h.id)+'" data-dir="'+dir+'" data-period="'+period+'" data-tenant="'+esc(tenant||'')+'" aria-label="Edit rent'+esc(label)+'">'+ic('edit',20)+'</button>';
+}
+function rentStatusCard(h,dir,period,tenant,profile,rec,withEdit=true){
+  const future=period>curMonth(),amount=rec?rec.amountP:profile&&profile.rentAmountP!=null?profile.rentAmountP:h.rentAmountP;
+  const hasAmount=Number.isInteger(amount)&&amount>0,paid=!!(rec&&rec.status!=='due'),status=future&&!rec?'Not logged':paid?(dir==='received'?'Received':'Paid'):'Payment due';
+  const due=paymentDueLabel((rec&&rec.x&&rec.x.dueBy)?{dueBy:rec.x.dueBy,dueDay:rec.x.dueDay}:profile||h);
+  const agreement=profile&&profile.agStart||profile&&profile.agEnd?'<div class="kv"><span>Agreement</span><span>'+((profile.agStart?fmtDate(profile.agStart)+' – ':'')+(profile.agEnd?fmtDate(profile.agEnd):''))+'</span></div>':'';
+  const toggle=(!future||rec)&&hasAmount?'<label class="sw"><input type="checkbox" role="switch" data-act="rentToggle" data-dir="'+dir+'" data-house="'+esc(h.id)+'" data-period="'+period+'" data-tenant="'+esc(tenant||'')+'"'+(paid?' checked':'')+'><span class="trk"></span><span>'+(paid?(dir==='received'?'Received':'Paid'):'Payment due')+'</span></label>':'';
+  const futureAction=future&&!rec?'<button class="btn soft block" data-act="rentEdit" data-house="'+esc(h.id)+'" data-dir="'+dir+'" data-period="'+period+'" data-tenant="'+esc(tenant||'')+'">'+ic('plus',18)+'Log rent in advance</button>':'';
+  return '<div class="card rent-due-card"><div class="kv" style="align-items:center"><span><b style="color:var(--ink);font-weight:600">'+esc(tenant||(dir==='paid'?'Rent payment':h.name))+'</b>'+(tenant?'<br><small>'+esc(h.name)+' · Tenant</small>':'')+'</span><span class="pill '+(paid?'good':future&&!rec?'':'warn')+'">'+status+'</span>'+(withEdit?editRentButton(h,dir,period,tenant,rec,profile):'')+'</div>'+
+    (hasAmount?'<div class="kv"><span>Monthly rent</span><span>'+fmt(amount)+'</span></div>':'<p class="sub">Set a monthly rent amount in Houses settings to track this payment.</p>')+
+    '<div class="kv"><span>Payment Due By</span><span>'+esc(due)+'</span></div>'+agreement+toggle+futureAction+'</div>';
+}
+function rentHouseCard(h,dir,period){
+  const profiles=dir==='received'?tenantProfiles(h):[null];
+  const cards=profiles.length?profiles.map(p=>rentStatusCard(h,dir,period,p&&p.name,p,rentRecord(h,dir,period,p&&p.name))).join(''):'<div class="note">Add tenant details in Houses settings to track received rent.</div>';
+  return '<div class="card"><div class="kv" style="align-items:center"><span><b style="color:var(--ink);font-weight:600">'+esc(h.name)+'</b><br><small>'+esc([h.addr,h.meter].filter(Boolean).join(' · ')||'No additional details')+'</small></span>'+(dir==='paid'?editRentButton(h,dir,period,'',rentRecord(h,dir,period,''),null):'')+'</div>'+
+    (dir==='paid'?rentStatusCard(h,dir,period,'',null,rentRecord(h,dir,period,''),false):cards)+'</div>';
+}
+function rentLanding(){
   const mk=S.mon,P=recsIn(mk,r=>r.cat==='rent'&&r.dir==='paid'),R=recsIn(mk,r=>r.cat==='rent'&&r.dir==='received');
-  const o=(dir,ico,t,d,list)=>'<button class="opt" data-act="rentPick" data-v="'+dir+'"><span class="ci" style="--c:#C0558C">'+ic(ico,24)+'</span><span style="flex:1;min-width:0"><h3>'+t+'</h3><p>'+d+'</p><span class="num">'+fmt(sum(list.filter(r=>r.status!=='due')))+'</span><span class="sub">'+list.length+' record'+(list.length===1?'':'s')+' in '+monShort(mk)+'</span></span>'+ic('chevR',20)+'</button>';
+  const option=(dir,icon,title,description,records)=>'<button class="opt" data-act="rentPick" data-v="'+dir+'"><span class="ci" style="--c:#C0558C">'+ic(icon,24)+'</span><span style="flex:1;min-width:0"><h3>'+title+'</h3><p>'+description+'</p><span class="num">'+fmt(sum(records.filter(r=>r.status!=='due')))+'</span><span class="sub">'+records.length+' record'+(records.length===1?'':'s')+' in '+monLabel(mk)+'</span></span>'+ic('chevR',20)+'</button>';
   return hd('Rent')+'<h2 style="font:700 20px var(--fd);margin:2px 2px 4px">What would you like to log?</h2><p class="sub" style="margin:0 2px 14px">Choose one. Paid and received rent are kept in separate logs.</p>'+
-   o('paid','arrOut','Rent paid','Rent you pay to a landlord. Counted in your household spending.',P)+
-   o('received','arrIn','Rent received','Rent you collect from a tenant. Kept as income and not counted as spending.',R);
-};
-V.rentLog=()=>{
-  const dir=UI.rentDir,mk=S.mon,a=recsIn(mk,r=>r.cat==='rent'&&r.dir===dir).sort((x,y)=>x.date<y.date?1:-1);
-  const done=sum(a.filter(r=>r.status!=='due')),due=sum(a.filter(r=>r.status==='due'));
-  const pd=dir==='paid';
-  return hd('Rent')+
-   '<div class="seg" role="tablist"><button role="tab" aria-selected="'+pd+'" class="'+(pd?'on':'')+'" data-act="rentDir" data-v="paid">Rent paid</button><button role="tab" aria-selected="'+!pd+'" class="'+(!pd?'on':'')+'" data-act="rentDir" data-v="received">Rent received</button></div>'+monNav()+
-   '<section class="card"><div class="eyebrow">'+(pd?'Paid':'Received')+' for '+monLabel(mk)+'</div><div class="num" style="font-size:34px;margin:4px 0 6px;'+(pd?'':'color:var(--good)')+'">'+fmt(done)+'</div>'+
-   '<div class="pills"><span class="pill">'+a.length+' record'+(a.length===1?'':'s')+'</span>'+(due?'<span class="pill warn">Due '+fmt(due)+'</span>':'')+'<span class="pill '+(pd?'':'good')+'">'+(pd?'Counted as spending':'Income, not counted as spending')+'</span></div></section>'+agCards(dir)+(pd?'':tenantBreakdown(a))+
-   (a.length?recList(a):empty('key','No rent '+(pd?'paid':'received')+' for '+monLabel(mk),'Log a '+(pd?'payment to your landlord':'receipt from your tenant')+' for this month.'))+
-   '<div class="cta"><button class="btn pri block" data-act="rentAdd">'+ic('plus',20)+'Log rent '+(pd?'paid':'received')+'</button></div>';
-};
+    option('paid','arrOut','Rent paid','Rent you pay to a landlord. Counted in your household spending.',P)+
+    option('received','arrIn','Rent received','Rent you collect from a tenant. Kept as income and not counted as spending.',R);
+}
+function rentLog(){
+  const dir=UI.rentDir,period=S.mon,pd=dir==='paid',current=period<=curMonth();
+  const houses=S.houses.filter(h=>houseRentDir(h)===dir);
+  if(UI.rentHouse!=='all'&&!houses.some(h=>h.id===UI.rentHouse))UI.rentHouse='all';
+  const one=UI.rentHouse==='all'?null:houseOf(UI.rentHouse),visible=one?[one]:houses;
+  const chips='<div class="seg" role="tablist" style="overflow-x:auto"><button role="tab" aria-selected="'+!one+'" class="'+(!one?'on':'')+'" data-act="rentHouse" data-id="all" style="flex:none;white-space:nowrap">All houses</button>'+houses.map(h=>'<button role="tab" aria-selected="'+(UI.rentHouse===h.id)+'" class="'+(UI.rentHouse===h.id?'on':'')+'" data-act="rentHouse" data-id="'+esc(h.id)+'" style="flex:none;white-space:nowrap">'+esc(h.name)+'</button>').join('')+'</div>';
+  const selected=visible.map(h=>rentHouseCard(h,dir,period)).join('');
+  const periodRecords=recsIn(period,r=>r.cat==='rent'&&r.dir===dir&&(!one||matchesRentHouse(r,one)));
+  const total=sum(periodRecords.filter(r=>r.status!=='due'));
+  let due=sum(periodRecords.filter(r=>r.status==='due'));
+  if(period<=curMonth())visible.forEach(h=>{
+    const profiles=dir==='received'?tenantProfiles(h):[null];
+    profiles.forEach(profile=>{
+      if(rentRecord(h,dir,period,profile&&profile.name))return;
+      const amount=profile?profile.rentAmountP:h.rentAmountP;
+      if(Number.isInteger(amount)&&amount>0)due+=amount;
+    });
+  });
+  return hd('Rent','<button class="pchip" data-act="houses" aria-label="Manage houses">Houses'+ic('edit',16)+'</button>')+
+    monNav()+chips+
+    '<section class="card"><div class="eyebrow">'+(pd?'Rent paid':'Rent received')+' · '+monLabel(period)+'</div><div class="num" style="font-size:32px;margin:4px 0 6px;'+(pd?'':'color:var(--good)')+'">'+fmt(total)+'</div><div class="pills"><span class="pill '+(due?'warn':'good')+'">'+(due?'Due '+fmt(due):'No overdue balance')+'</span><span class="pill">'+periodRecords.length+' saved record'+(periodRecords.length===1?'':'s')+'</span></div></section>'+
+    (houses.length?selected:empty('home','No houses for '+(pd?'rent paid':'rent received'),'Add a house in Settings → Houses to start tracking rent.','<button class="btn pri" data-act="houses">Manage houses</button>'))+
+    (periodRecords.length?'<div class="card"><h2>Rent records</h2><div class="list">'+recList(periodRecords)+'</div></div>':'')+
+    (current&&houses.length?'<p class="note">Monthly payment cards appear for the selected month. Mark a card paid or received when the payment is complete.</p>':'');
+}
+V.rent=rentLanding;
+V.rentLog=rentLog;

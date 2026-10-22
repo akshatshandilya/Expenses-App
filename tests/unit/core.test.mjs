@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {parseMoney,parseQty,mul,fmt,rs} from '../../src/core/money.js';
 import {addMonths,validDate,validMonth,pad} from '../../src/core/dates.js';
-import {S,replaceState,blank,migrateState,tenantProfiles} from '../../src/data/state.js';
+import {S,replaceState,blank,migrateState,tenantProfiles,paymentDueLabel} from '../../src/data/state.js';
 import {spent,catSpent,priceOn,setPrice,sum} from '../../src/core/rules.js';
 import {buildCsv,csvCell} from '../../src/core/csv.js';
 
@@ -65,9 +65,12 @@ test('legacy state gains Auto and Cabs routes once without undoing a later delet
 });
 test('tenant profiles normalize legacy names and retain agreement data',()=>{
   assert.deepEqual(tenantProfiles({tenants:['Asha Rao',{name:'Ben Singh',agStart:'2026-01-01',rentAmountP:700000}]}),[
-    {name:'Asha Rao',agStart:'',agEnd:'',rentAmountP:null},
-    {name:'Ben Singh',agStart:'2026-01-01',agEnd:'',rentAmountP:700000}
+    {name:'Asha Rao',agStart:'',agEnd:'',rentAmountP:null,dueBy:'first',dueDay:null},
+    {name:'Ben Singh',agStart:'2026-01-01',agEnd:'',rentAmountP:700000,dueBy:'first',dueDay:null}
   ]);
+  assert.equal(paymentDueLabel({dueBy:'first'}),'1st of every month');
+  assert.equal(paymentDueLabel({dueBy:'seventh'}),'7th of every month');
+  assert.equal(paymentDueLabel({dueBy:'custom',dueDay:12}),'12th of every month');
 });
 test('CSV export neutralises spreadsheet formulas and quotes properly',()=>{
   assert.match(csvCell('=SUM(A1)'),/^"?'=/);assert.match(csvCell('+1'),/^"?'\+/);assert.match(csvCell('@x'),/^"?'@/);

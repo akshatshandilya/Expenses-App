@@ -30,14 +30,21 @@ export function migrateState(state){
   return changed;
 }
 export function blank(){return{v:1,onboarded:false,theme:'system',houses:[],lock:{on:false,timeout:30},cats:defaultCats(),routes:defaultRoutes(),features:{autoCabs:1},records:[],dist:[],prices:{},kmCost:'',mon:curMonth()};}
-export const UI={tt:'fuel',wTab:'cal',wsel:null,q:'',cf:'all',sort:'dateDesc',rv:'month',rentDir:'paid',eh:'all',wbh:'all'};
+export const UI={tt:'fuel',wTab:'cal',wsel:null,q:'',cf:'all',sort:'dateDesc',rv:'month',rentDir:'paid',rentHouse:'all',eh:'all',wbh:'all'};
 export const catOf=id=>S.cats.find(c=>c.id===id);
 export const houseOf=id=>S.houses.find(h=>h.id===id);
 export function tenantProfiles(house){
   if(!Array.isArray(house&&house.tenants))return [];
   return house.tenants.map(t=>typeof t==='string'?{name:t,agStart:'',agEnd:'',rentAmountP:null}:t)
     .filter(t=>t&&typeof t.name==='string'&&t.name.trim())
-    .map(t=>({name:t.name,agStart:t.agStart||'',agEnd:t.agEnd||'',rentAmountP:Number.isInteger(t.rentAmountP)?t.rentAmountP:null}));
+    .map(t=>({name:t.name,agStart:t.agStart||'',agEnd:t.agEnd||'',rentAmountP:Number.isInteger(t.rentAmountP)?t.rentAmountP:null,dueBy:['first','seventh','custom'].includes(t.dueBy)?t.dueBy:'first',dueDay:Number.isInteger(t.dueDay)&&t.dueDay>=1&&t.dueDay<=31?t.dueDay:null}));
+}
+export function paymentDueLabel(item){
+  const mode=['first','seventh','custom'].includes(item&&item.dueBy)?item.dueBy:'first';
+  const day=mode==='first'?1:mode==='seventh'?7:item&&Number.isInteger(item.dueDay)&&item.dueDay>=1&&item.dueDay<=31?item.dueDay:null;
+  if(day==null)return 'Set a due day';
+  const suffix=day%100>=11&&day%100<=13?'th':({1:'st',2:'nd',3:'rd'}[day%10]||'th');
+  return day+suffix+' of every month';
 }
 export function houseRentDir(house){
   if(house.rentDir==='paid'||house.rentDir==='received')return house.rentDir;

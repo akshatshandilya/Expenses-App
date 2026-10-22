@@ -3,7 +3,7 @@ import {monLabel} from '../core/dates.js';
 import {fmt} from '../core/money.js';
 import {counted,recsIn,sum} from '../core/rules.js';
 import {esc} from '../core/util.js';
-import {S,UI,catOf,houseOf,houseRentDir} from '../data/state.js';
+import {S,UI,catOf,houseOf,houseRentDir,tenantProfiles,paymentDueLabel} from '../data/state.js';
 import {empty,hd,monNav,recList,stats} from './components.js';
 import {ic} from './icons.js';
 import {V} from './registry.js';
@@ -26,8 +26,8 @@ function houseBill(cat,title,icon,selector,selectorAction,addAction){
 V.electricity=()=>houseBill('electricity','Electricity','bolt','eh','eh','elecAdd');
 V.waterbill=()=>houseBill('waterbill','Water Bill','drop','wbh','wbh','waterBillAdd');
 V.houses=()=>hd('Houses')+'<p class="sub" style="margin:-4px 2px 12px">Manage the houses used for rent, electricity and water bills. Edit a receiving-rent house to manage its tenant list.</p>'+
-  (S.houses.length?'<div class="list">'+S.houses.map(h=>{const bills=S.records.filter(r=>(r.cat==='electricity'||r.cat==='waterbill')&&r.houseId===h.id).length,rents=S.records.filter(r=>r.cat==='rent'&&r.houseId===h.id).length,tenantCount=Array.isArray(h.tenants)?h.tenants.length:0;
-    return '<div class="rec" style="cursor:default"><span class="ci" style="--c:#D3A006">'+ic('home',20)+'</span><span class="rt"><b>'+esc(h.name)+(h.demo?'<i class="demo">DEMO</i>':'')+'</b><small>'+esc([h.addr,h.meter].filter(Boolean).join(' · ')||'No details added')+' · '+(houseRentDir(h)==='paid'?'Paying Rent':'Receiving Rent')+(houseRentDir(h)==='received'?' · '+tenantCount+' tenant'+(tenantCount===1?'':'s'):'')+' · '+bills+' utility bill'+(bills===1?'':'s')+' · '+rents+' rent record'+(rents===1?'':'s')+'</small></span>'+
+  (S.houses.length?'<div class="list">'+S.houses.map(h=>{const bills=S.records.filter(r=>(r.cat==='electricity'||r.cat==='waterbill')&&r.houseId===h.id).length,rents=S.records.filter(r=>r.cat==='rent'&&r.houseId===h.id).length,profiles=tenantProfiles(h),direction=houseRentDir(h),rentDetails=direction==='paid'?' · Monthly rent '+(Number.isInteger(h.rentAmountP)?fmt(h.rentAmountP):'not set')+' · Due '+paymentDueLabel(h):' · '+profiles.length+' tenant'+(profiles.length===1?'':'s')+(profiles.length?': '+profiles.map(t=>t.name+' due '+paymentDueLabel(t)).join(', '):'');
+    return '<div class="rec" style="cursor:default"><span class="ci" style="--c:#D3A006">'+ic('home',20)+'</span><span class="rt"><b>'+esc(h.name)+(h.demo?'<i class="demo">DEMO</i>':'')+'</b><small>'+esc([h.addr,h.meter].filter(Boolean).join(' · ')||'No details added')+' · '+(direction==='paid'?'Paying Rent':'Receiving Rent')+rentDetails+' · '+bills+' utility bill'+(bills===1?'':'s')+' · '+rents+' rent record'+(rents===1?'':'s')+'</small></span>'+
     '<button class="ib flat" data-act="editHouse" data-id="'+esc(h.id)+'" aria-label="Edit '+esc(h.name)+'">'+ic('edit',20)+'</button><button class="ib flat" data-act="delHouse" data-id="'+esc(h.id)+'" aria-label="Delete '+esc(h.name)+'">'+ic('trash',20)+'</button></div>';}).join('')+'</div>'
    :empty('home','No houses yet','Add a house to use it for rent or electricity records.'))+
   '<div class="cta"><button class="btn pri block" data-act="addHouse">'+ic('plus',20)+'Add a house</button></div>';

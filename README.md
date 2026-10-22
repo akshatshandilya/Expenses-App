@@ -32,7 +32,7 @@ To build the APK locally you also need JDK 21 and the Android SDK: `npm run sync
 
 - **Water Bottles**: price asked once, then the calendar opens directly. Several deliveries a day. Each delivery keeps the unit price it was saved with; changing the default price never rewrites saved records.
 - **Travel**: Distance, Fuel, Toll. Distance is never counted as spending.
-- **Rent**: Manage tenants per receiving-rent house with agreement dates and monthly rent. Log receipts by choosing a tenant from the house’s dropdown; the saved monthly rent is suggested and totals are shown tenant-wise. Paid/received dates are on the main rent log form.
+- **Rent**: Choose Rent Paid or Rent Received, then view monthly payment cards by house (and by tenant for received rent). Set a monthly rent amount and due day in Houses; cards start as Payment due and can be marked paid or received. Future months let you log rent in advance. Tenant agreements and monthly rent stay with their receiving-rent house.
 - **Auto and Cabs**: Log Auto-rickshaw or Cab fares against saved routes, or enter a one-off route. Route presets can be renamed, added or removed.
 - **Categories** can be deleted from Settings. Choose any existing category; deleting it also deletes its expense records and, for Travel, its journeys.
 - **Money** is stored as whole paise; quantities in thousandths. Unit price x quantity is rounded half-up to the paisa.
