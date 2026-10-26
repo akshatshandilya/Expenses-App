@@ -138,10 +138,10 @@ export function getSpec(p){
       fill:r=>({date:r.date,route:r.party||'',vehicle:(r.x&&r.x.vehicle)||'',amount:rs(r.amountP),method:(r.x&&r.x.method)||'',notes:r.notes||''}),
       build:v=>({cat:'travel',sub:'toll',date:v.date,party:v.route.trim(),amountP:parseMoney(v.amount),notes:v.notes.trim(),x:{vehicle:v.vehicle.trim(),method:v.method}})};
     case 'distance':return{cat:'travel',store:'dist',title:p.id?'Edit journey':'Add journey',save:'Save journey',
-      fields:[{k:'date',t:'date',l:'Date'},{k:'from',t:'text',l:'Starting location',opt:1},{k:'to',t:'text',l:'Destination',opt:1},{k:'km',t:'qty',l:'Distance travelled',sfx:'km',req:1},{k:'purpose',t:'area',l:'Purpose or notes',opt:1}],
-      init:()=>({date:defDate(p),from:'',to:'',km:'',purpose:''}),
-      fill:r=>({date:r.date,from:r.from||'',to:r.to||'',km:qtyStr(r.kmM),purpose:r.purpose||''}),
-      build:v=>({date:v.date,from:v.from.trim(),to:v.to.trim(),kmM:parseQty(v.km),purpose:v.purpose.trim()})};
+      fields:[{k:'date',t:'date',l:'Date'},{k:'from',t:'text',l:'Starting location',opt:1},{k:'to',t:'text',l:'Destination',opt:1},{k:'km',t:'qty',l:'Distance travelled',sfx:'km',req:1},{k:'vehicle',t:'text',l:'Vehicle',ph:'e.g. Car',opt:1},{k:'purpose',t:'area',l:'Purpose or notes',opt:1}],
+      init:()=>({date:defDate(p),from:'',to:'',km:'',vehicle:'',purpose:''}),
+      fill:r=>({date:r.date,from:r.from||'',to:r.to||'',km:qtyStr(r.kmM),vehicle:r.vehicle||'',purpose:r.purpose||''}),
+      build:v=>({date:v.date,from:v.from.trim(),to:v.to.trim(),kmM:parseQty(v.km),vehicle:v.vehicle.trim(),purpose:v.purpose.trim()})};
     case 'house':return{cat:'electricity',store:'houses',title:p.id?'Edit house':'Add house',save:'Save house',
       fields:[{k:'name',t:'text',l:'House name',ph:'e.g. Main home, Flat 4B',req:1},{k:'addr',t:'text',l:'Address or area',opt:1},{k:'meter',t:'text',l:'Consumer or meter number',opt:1}].concat(p.utility?[]:[{k:'rentDir',t:'radio',l:'Rent type',opts:[['paid','Paying','Rent paid to a landlord'],['received','Receiving','Rent collected from a tenant']]},{k:'rentAmount',t:'money',l:'Monthly rent',req:1,show:v=>v.rentDir==='paid'},{k:'dueBy',t:'select',l:'Payment Due By',opts:[['first','1st of every month'],['seventh','7th of every month'],['custom','Custom']],show:v=>v.rentDir==='paid'},{k:'dueDay',t:'number',min:1,max:31,l:'Day of every month',ph:'e.g. 12',show:v=>v.rentDir==='paid'&&v.dueBy==='custom'},{k:'tenants',t:'tenantRoster',l:'Tenant details',show:v=>v.rentDir==='received',hint:()=> 'Add agreement dates, monthly rent and the payment due day for each tenant.'}]),
       init:()=>({name:'',rentDir:'paid',addr:'',meter:'',rentAmount:'',dueBy:'first',dueDay:'',tenants:[emptyTenant()]}),
@@ -336,6 +336,11 @@ export function saveForm(){
   if(v.date&&sp.fields.some(f=>f.k==='date')&&!validDate(v.date)){return;}
   const base=sp.build(v);
   const old=(sp.store==='dist'?S.dist:sp.store==='houses'?S.houses:S.records).find(x=>x.id===F.id),rec=Object.assign({id:F.id,ts:(old&&old.ts)?old.ts:Date.now()},base);if(old)rec.es=Date.now();
+  if(sp.cat==='travel'&&(F.p.journeyId||(old&&old.journeyId)))rec.journeyId=F.p.journeyId||(old&&old.journeyId);
+  if(sp.cat==='travel'&&rec.journeyId&&rec.x&&rec.x.vehicle){
+    const journey=S.dist.find(d=>d.id===rec.journeyId);
+    if(journey)journey.vehicle=rec.x.vehicle;
+  }
   if(sp.dup&&!F.dupAck){const m=sp.dup(rec);if(m){F.dupAck=true;const w=$('#warn');w.textContent=m;w.hidden=false;$('#saveBtn').lastChild.textContent='Save anyway';w.scrollIntoView({block:'center'});return;}}
   if(sp.cat==='rent'&&v.addHouse){
     const h={id:uid(),name:v.houseName.trim(),rentDir:v.houseDir,addr:v.houseAddr.trim(),meter:v.houseMeter.trim(),rentAmountP:v.houseDir==='paid'?parseMoney(v.houseRentAmount):null,dueBy:v.houseDir==='paid'?v.houseDueBy:'first',dueDay:v.houseDir==='paid'&&v.houseDueBy==='custom'?Number(v.houseDueDay):null,tenants:v.houseDir==='received'?(v.newTenants||[]).filter(t=>t.name.trim()).map(t=>({name:t.name.trim(),agStart:t.agStart,agEnd:t.agEnd,rentAmountP:parseMoney(t.rentAmount),dueBy:t.dueBy||'first',dueDay:t.dueBy==='custom'?Number(t.dueDay):null})):[]};

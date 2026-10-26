@@ -1,13 +1,13 @@
 /* @auto-imports */
 import {addMonths,curMonth,fmtClock,fmtDate,fmtStamp,monLabel,pad,today,validDate,weekday} from '../core/dates.js';
 import {MAX_UNIT,fmt,mul,parseMoney,qtyStr} from '../core/money.js';
-import {setPrice} from '../core/rules.js';
+import {setPrice,travelCostPerKm} from '../core/rules.js';
 import {$,esc,uid} from '../core/util.js';
 import {DLG,S,UI,blank,catOf,houseOf,persist,replaceState} from '../data/state.js';
 import {applyLockEffects} from '../native/lock.js';
 import {platform} from '../native/platform.js';
 import {miniCal} from './clock.js';
-import {chipOf} from './components.js';
+import {chipOf,recList} from './components.js';
 import {editParams,entryFor,openEntry,refreshCabRoutes,toggleRentHouse} from './entry.js';
 import {ic} from './icons.js';
 import {ask,back,closeL,draw,go,openCat,sheet,stack,tab,toast} from './nav.js';
@@ -29,6 +29,15 @@ function resetRentStatus(card){
   if(pill){pill.classList.remove('good');pill.classList.add('warn');pill.textContent='Payment due';}
   const entry=card.querySelector('[data-rent-status-entry]');
   if(entry)entry.innerHTML='';
+}
+function journeySheet(d){
+  const title=d.from||d.to?((d.from||'?')+' → '+(d.to||'?')):'Journey';
+  const expenses=S.records.filter(r=>r.journeyId===d.id&&r.cat==='travel'&&['fuel','toll'].includes(r.sub)).sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:(b.ts||0)-(a.ts||0));
+  const fuel=expenses.filter(r=>r.sub==='fuel').reduce((a,r)=>a+r.amountP,0),toll=expenses.filter(r=>r.sub==='toll').reduce((a,r)=>a+r.amountP,0);
+  return '<h2>'+esc(title)+'</h2><div class="num" style="font-size:28px;margin:4px 0 8px">'+qtyStr(d.kmM)+' km</div><div class="kv"><span>Date</span><span>'+fmtDate(d.date)+'</span></div>'+(d.ts?'<div class="kv"><span>Added</span><span>'+fmtStamp(d.ts)+'</span></div>':'')+(d.es?'<div class="kv"><span>Last edited</span><span>'+fmtStamp(d.es)+'</span></div>':'')+(d.purpose?'<div class="kv"><span>Purpose</span><span>'+esc(d.purpose)+'</span></div>':'')+
+   (d.vehicle?'<div class="kv"><span>Vehicle</span><span>'+esc(d.vehicle)+'</span></div>':'')+'<p class="sub" style="margin-top:8px">Distance is not counted as spending.</p><div class="card"><h3>Journey expenses</h3><div class="kv"><span>Fuel</span><span>'+fmt(fuel)+'</span></div><div class="kv"><span>Toll</span><span>'+fmt(toll)+'</span></div>'+(expenses.length?recList(expenses):'<p class="sub">No fuel or toll expenses added to this journey yet.</p>')+
+   '<div class="row2"><button class="btn soft" data-act="journeyAdd" data-s="fuel" data-id="'+esc(d.id)+'">'+ic('plus',18)+'Add fuel</button><button class="btn soft" data-act="journeyAdd" data-s="toll" data-id="'+esc(d.id)+'">'+ic('plus',18)+'Add toll</button></div></div>'+
+   '<div class="row2"><button class="btn" data-act="editDist" data-id="'+esc(d.id)+'">'+ic('edit',18)+'Edit</button><button class="btn dan" data-act="del" data-kind="dist" data-id="'+esc(d.id)+'">'+ic('trash',18)+'Delete</button></div>';
 }
 Object.assign(A,{
  back:()=>back(),
@@ -64,10 +73,10 @@ Object.assign(A,{
  cabAdd:()=>openEntry({spec:'cab'}),
  addRoute:()=>{if(S.routes.length>=200){toast('You can save up to 200 routes','bad');return;}let n=1,name='New route';while(S.routes.some(r=>r.name.toLowerCase()===name.toLowerCase())){n++;name='New route '+n;}const i=S.routes.findIndex(r=>r.fixed),r={id:uid(),name:name};S.routes.splice(i<0?S.routes.length:i,0,r);refreshCabRoutes();persist();draw(true);sheet(routesHtml());const all=document.querySelectorAll('#layer [data-rt]');for(const el of all)if(el.dataset.rt===r.id){el.focus();el.select();break;}},
  delRoute:el=>{S.routes=S.routes.filter(r=>r.id!==el.dataset.id||r.fixed);refreshCabRoutes();persist();draw(true);sheet(routesHtml());},
- distRow:el=>{const d=S.dist.find(x=>x.id===el.dataset.id);if(!d)return;sheet('<h2>'+esc(d.from||d.to?((d.from||'?')+' → '+(d.to||'?')):'Journey')+'</h2><div class="num" style="font-size:28px;margin:4px 0 8px">'+qtyStr(d.kmM)+' km</div><div class="kv"><span>Date</span><span>'+fmtDate(d.date)+'</span></div>'+(d.ts?'<div class="kv"><span>Added</span><span>'+fmtStamp(d.ts)+'</span></div>':'')+(d.es?'<div class="kv"><span>Last edited</span><span>'+fmtStamp(d.es)+'</span></div>':'')+(d.purpose?'<div class="kv"><span>Purpose</span><span>'+esc(d.purpose)+'</span></div>':'')+'<p class="sub" style="margin-top:8px">Distance is not counted as spending.</p><div class="row2"><button class="btn" data-act="editDist" data-id="'+esc(d.id)+'">'+ic('edit',18)+'Edit</button><button class="btn dan" data-act="del" data-kind="dist" data-id="'+esc(d.id)+'">'+ic('trash',18)+'Delete</button></div>');},
+ distRow:el=>{const d=S.dist.find(x=>x.id===el.dataset.id);if(d)sheet(journeySheet(d));},
+ journeyAdd:el=>{const d=S.dist.find(x=>x.id===el.dataset.id),spec=el.dataset.s;if(!d||!['fuel','toll'].includes(spec)){toast('Could not open this journey expense','bad');return;}closeL();openEntry({spec:spec,journeyId:d.id,date:d.date,pre:{vehicle:d.vehicle||''}});},
  editDist:el=>{closeL();openEntry({spec:'distance',id:el.dataset.id});},
- saveKm:()=>{const v=DLG.kmrate==null?S.kmCost:DLG.kmrate,e=$('#kmErr');if(String(v).trim()===''){S.kmCost='';persist();draw(true);return;}const m=parseMoney(v);if(m==null||m<=0||m>100000){e.textContent='Enter an amount above 0, such as 8 or 7.50.';return;}S.kmCost=String(v).trim();persist();draw(true);toast('Estimate saved');},
- recKm:()=>{const mk=S.mon,km=S.dist.filter(d=>d.date.slice(0,7)===mk).reduce((a,d)=>a+d.kmM,0),rate=parseMoney(S.kmCost);if(!rate||!km)return;const est=mul(km,rate);
+ recKm:()=>{const mk=S.mon,km=S.dist.filter(d=>d.date.slice(0,7)===mk).reduce((a,d)=>a+d.kmM,0),rate=travelCostPerKm(mk);if(rate==null||!km)return;const est=mul(km,rate);
    ask({title:'Record estimate as an expense?',msg:'This adds '+fmt(est)+' to your travel spending for '+monLabel(mk)+'. It is only an estimate. You can delete it later.',ok:'Record expense',fn:()=>{const dt=mk===curMonth()?today():mk+'-'+pad(new Date(+mk.slice(0,4),+mk.slice(5),0).getDate());S.records.push({id:uid(),ts:Date.now(),cat:'travel',sub:'other',date:dt,title:'Estimated distance cost ('+qtyStr(km)+' km)',amountP:est,notes:'Estimate from cost per km',x:{est:1}});persist();closeL();draw(true);toast('Recorded');}});},
  todaySheet:()=>{let tz='';try{tz=Intl.DateTimeFormat().resolvedOptions().timeZone||'';}catch(e){}
    sheet('<div class="eyebrow">'+weekday(today())+'</div><h2 id="tsDate" style="margin:4px 0 2px">'+fmtDate(today())+'</h2><div class="num" id="tsTime" style="font-size:28px">'+fmtClock()+'</div><p class="sub" style="margin:6px 0 12px">Uses your phone’s clock'+(tz?' and time zone ('+esc(tz)+')':'')+'. The date changes by itself at midnight, and a new month starts with no spending.</p><div class="card flat" style="margin-bottom:0"><div class="eyebrow" style="margin-bottom:8px">'+monLabel(today().slice(0,7))+'</div>'+miniCal(today().slice(0,7))+'<div class="legend"><span><i></i>Has records</span></div></div><div class="row2"><button class="btn" data-act="closeL">Close</button></div>');},

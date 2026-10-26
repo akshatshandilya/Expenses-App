@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {parseMoney,parseQty,mul,fmt,rs} from '../../src/core/money.js';
 import {addMonths,validDate,validMonth,pad} from '../../src/core/dates.js';
 import {S,replaceState,blank,migrateState,tenantProfiles,paymentDueLabel} from '../../src/data/state.js';
-import {spent,catSpent,priceOn,setPrice,sum} from '../../src/core/rules.js';
+import {spent,catSpent,priceOn,setPrice,sum,travelCostPerKm} from '../../src/core/rules.js';
 import {buildCsv,csvCell} from '../../src/core/csv.js';
 
 test('money parsing is exact and strict',()=>{
@@ -52,6 +52,26 @@ test('changing the default price never rewrites saved records',()=>{
   assert.equal(S.prices.water.cur,6500);
   assert.equal(priceOn('water','2026-01-01'),6000);                       // before the change: old price
   assert.equal(priceOn('water','2099-01-01'),6500);                       // after: new price
+});
+test('travel cost per km uses linked expenses and distance only',()=>{
+  replaceState(blank());
+  S.dist=[
+    {id:'trip1',date:'2026-10-01',kmM:10000},
+    {id:'trip2',date:'2026-10-02',kmM:20000},
+    {id:'trip3',date:'2026-10-03',kmM:40000},
+    {id:'trip4',date:'2026-09-30',kmM:10000}
+  ];
+  S.records=[
+    rec({cat:'travel',sub:'fuel',journeyId:'trip1',date:'2026-10-01',amountP:100000}),
+    rec({cat:'travel',sub:'toll',journeyId:'trip1',date:'2026-10-01',amountP:20000}),
+    rec({cat:'travel',sub:'fuel',journeyId:'trip2',date:'2026-10-02',amountP:300000}),
+    rec({cat:'travel',sub:'toll',journeyId:'trip2',date:'2026-10-02',amountP:50000,status:'due'}),
+    rec({cat:'travel',sub:'fuel',journeyId:'trip4',date:'2026-09-30',amountP:90000}),
+    rec({cat:'travel',sub:'fuel',date:'2026-10-02',amountP:999999})
+  ];
+  assert.equal(travelCostPerKm('2026-10'),14000);
+  assert.equal(travelCostPerKm('2026-09'),9000);
+  assert.equal(travelCostPerKm('2026-08'),null);
 });
 test('legacy state gains Auto and Cabs routes once without undoing a later deletion',()=>{
   const old=blank();old.features={};delete old.routes;old.cats=old.cats.filter(c=>c.id!=='cab');

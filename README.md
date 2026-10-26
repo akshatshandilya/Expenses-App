@@ -24,14 +24,14 @@ npm test                 # unit tests: money, months, price history, storage, ba
 npm run audit:project    # static privacy/security checks
 ```
 
-Browser checks need a Chromium (set `CHROME_PATH` to its executable): `npm run test:smoke`, `npm run test:water`, `npm run test:cabs`, `npm run test:rent`, `npm run test:parity`.
+Browser checks need a Chromium (set `CHROME_PATH` to its executable): `npm run test:smoke`, `npm run test:water`, `npm run test:travel`, `npm run test:cabs`, `npm run test:rent`, `npm run test:parity`.
 
 To build the APK locally you also need JDK 21 and the Android SDK: `npm run sync`, then `cd android && gradlew assembleRelease`. The APK is in `android/app/build/outputs/apk/release/`.
 
 ## Rules
 
 - **Water Bottles**: price asked once, then the calendar opens directly. Several deliveries a day. Each delivery keeps the unit price it was saved with; changing the default price never rewrites saved records.
-- **Travel**: Distance, Fuel, Toll. Distance is never counted as spending.
+- **Travel**: Distance, Fuel, Toll. Save a vehicle on an individual journey to reuse it for that journey’s fuel and toll entries. Cost per km is calculated from linked Fuel and Toll expenses and the distance of journeys with those expenses. Log fuel and toll independently from the Travel cards too. Distance is never counted as spending.
 - **Rent**: Choose Rent Paid or Rent Received, then view monthly payment cards by house (and by tenant for received rent). Set a monthly rent amount and due day in Houses; cards start as Payment due and can be marked paid or received. Future months let you log rent in advance. Tenant agreements and monthly rent stay with their receiving-rent house.
 - **Auto and Cabs**: Log Auto-rickshaw or Cab fares against saved routes, or enter a one-off route. Route presets can be renamed, added or removed.
 - **Categories** can be deleted from Settings. Choose any existing category; deleting it also deletes its expense records and, for Travel, its journeys.

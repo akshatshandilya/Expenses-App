@@ -1,7 +1,7 @@
 /* @auto-imports */
 import {curMonth,fmtDate,fmtStamp,monLabel} from '../core/dates.js';
-import {fmt,mul,parseMoney,qtyStr} from '../core/money.js';
-import {counted,recsIn,sum} from '../core/rules.js';
+import {fmt,mul,qtyStr} from '../core/money.js';
+import {counted,recsIn,sum,travelCostPerKm} from '../core/rules.js';
 import {esc} from '../core/util.js';
 import {S,UI,houseOf,houseRentDir,tenantProfiles,paymentDueLabel} from '../data/state.js';
 import {empty,hd,monNav,recList,stats} from './components.js';
@@ -19,12 +19,12 @@ V.travel=()=>{
   const tc=(k,ico,l,v,c)=>'<button class="tcard" style="--c:'+c+'" data-act="tTab" data-v="'+k+'" aria-pressed="'+(tt===k)+'"><span class="ci" style="--c:'+c+'">'+ic(ico,22)+'</span><b>'+l+'</b><span class="num">'+v+'</span></button>';
   let body='';
   if(tt==='distance'){
-    const rate=parseMoney(S.kmCost),est=rate&&km?mul(km,rate):0;
+    const rate=travelCostPerKm(mk),est=rate!=null&&km?mul(km,rate):0;
     body=stats([['Distance this month',qtyStr(km)+' km'],['Journeys',String(dist.length)]])+
      '<div class="note">Distance is a measurement. It is never added to your spending.</div>'+
      (dist.length?'<div class="list">'+dist.map(d=>'<button class="rec" data-act="distRow" data-id="'+esc(d.id)+'"><span class="ci" style="--c:#4B6CD6">'+ic('pin',20)+'</span><span class="rt"><b>'+esc(d.from||d.to?((d.from||'?')+' → '+(d.to||'?')):(d.purpose||'Journey'))+(d.demo?'<i class="demo">DEMO</i>':'')+'</b><small>'+fmtDate(d.date)+(d.purpose?' · '+esc(d.purpose):'')+'</small>'+(d.ts?'<small class="stamp">Added '+fmtStamp(d.ts)+'</small>':'')+'</span><span class="amt">'+qtyStr(d.kmM)+' km</span></button>').join('')+'</div>':empty('pin','No journeys in '+monLabel(mk),'Add a journey to track kilometres travelled.'))+
-     '<div class="card"><h2>Cost per km estimate <small class="sub">optional</small></h2><div class="fld" style="margin-bottom:8px"><label for="kmrate" class="lb">Your estimate per km</label><div class="pre"><span>₹</span><input id="kmrate" inputmode="decimal" value="'+esc(S.kmCost)+'" placeholder="e.g. 8" data-d="kmrate" autocomplete="off"><button class="link" data-act="saveKm">Save</button></div><p class="err" id="kmErr" role="alert"></p></div>'+
-     (est?'<p class="sub"><b>Estimate: '+fmt(est)+'</b> for '+qtyStr(km)+' km. Not included in your spending.</p><button class="btn soft" style="margin-top:10px" data-act="recKm">Record this estimate as an expense</button>':'<p class="sub">Without an estimate, distance has no cost attached.</p>')+'</div>'+
+     '<div class="card"><h2>Cost per km estimate</h2>'+(rate!=null?'<div class="kv"><span>Calculated from linked journey expenses</span><b>'+fmt(rate)+' / km</b></div>':'<p class="sub">Add Fuel or Toll to a journey to calculate its cost per km.</p>')+
+     (est?'<p class="sub"><b>Estimate: '+fmt(est)+'</b> for '+qtyStr(km)+' km. Not included in your spending.</p><button class="btn soft" style="margin-top:10px" data-act="recKm">Record this estimate as an expense</button>':'')+'</div>'+
      '<div class="cta"><button class="btn pri block" data-act="tAdd" data-s="distance">'+ic('plus',20)+'Add journey</button></div>';
   }else if(tt==='fuel'){
     const q=fuel.reduce((a,r)=>a+r.qtyM,0),veh={};fuel.forEach(r=>{const v=(r.x&&r.x.vehicle)||'';if(v)veh[v]=(veh[v]||0)+r.amountP;});

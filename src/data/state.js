@@ -29,7 +29,7 @@ export function migrateState(state){
   }
   return changed;
 }
-export function blank(){return{v:1,onboarded:false,theme:'system',houses:[],lock:{on:false,timeout:30},cats:defaultCats(),routes:defaultRoutes(),features:{autoCabs:1},records:[],dist:[],prices:{},kmCost:'',mon:curMonth()};}
+export function blank(){return{v:1,onboarded:false,theme:'system',houses:[],lock:{on:false,timeout:30},cats:defaultCats(),routes:defaultRoutes(),features:{autoCabs:1},records:[],dist:[],prices:{},mon:curMonth()};}
 export const UI={tt:'fuel',wTab:'cal',wsel:null,q:'',cf:'all',sort:'dateDesc',rv:'month',rentDir:'paid',rentHouse:'all',eh:'all',wbh:'all'};
 export const catOf=id=>S.cats.find(c=>c.id===id);
 export const houseOf=id=>S.houses.find(h=>h.id===id);

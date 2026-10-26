@@ -25,11 +25,12 @@
     "test": "node --test \"tests/unit/*.test.mjs\"",
     "test:smoke": "node tests/browser/smoke.mjs",
     "test:parity": "node tests/browser/parity.mjs",
+    "test:travel": "node tests/browser/travel-journey-flow.mjs",
     "audit:project": "node scripts/audit.mjs",
     "test:water": "node tests/browser/water-flow.mjs",
     "test:cabs": "node tests/browser/cabs-flow.mjs",
     "test:rent": "node tests/browser/rent-houses-flow.mjs",
-    "test:all": "npm test && npm run test:smoke && npm run test:water && npm run test:cabs && npm run test:rent && npm run test:parity"
+    "test:all": "npm test && npm run test:smoke && npm run test:water && npm run test:travel && npm run test:cabs && npm run test:rent && npm run test:parity"
   },
   "description": "Expenses: a private, offline household expense tracker for Android",
   "engines": {
