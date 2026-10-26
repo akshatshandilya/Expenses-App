@@ -12,6 +12,7 @@ export function defaultCats(){return[
  {id:'medical',name:'Medical',icon:'medical',color:'#D9506B',kind:'simple',b:1},
  {id:'travel',name:'Travel',icon:'car',color:'#4B6CD6',kind:'travel',b:1},
  {id:'rent',name:'Rent',icon:'key',color:'#C0558C',kind:'rent',b:1},
+ {id:'mobilebill',name:'Mobile Bill',icon:'wifi',color:'#16A0B0',kind:'mobilebill',b:1},
  {id:'cab',name:'Auto and Cabs',icon:'cab',color:'#A8683B',kind:'cab',b:1},
  {id:'other',name:'Other Expenses',icon:'dots',color:'#6F8079',kind:'simple',b:1}];}
 export function defaultRoutes(){return[{id:'rt1',name:'Home to Office'},{id:'rt2',name:'Office to Home'},{id:'others',name:'Others',fixed:1}];}
@@ -20,6 +21,14 @@ export function migrateState(state){
   if(!Array.isArray(state.routes)){state.routes=defaultRoutes();changed=true;}
   if(!Array.isArray(state.cats)){state.cats=defaultCats();changed=true;}
   if(!state.features||typeof state.features!=='object'||Array.isArray(state.features)){state.features={};changed=true;}
+  if(!Array.isArray(state.mobileBills)){state.mobileBills=[];changed=true;}
+  if(state.features.mobileBillCategory!==1){
+    if(!state.cats.some(c=>c.id==='mobilebill')){
+      const i=state.cats.findIndex(c=>c.id==='cab');
+      state.cats.splice(i<0?state.cats.length:i,0,defaultCats().find(c=>c.id==='mobilebill'));
+    }
+    state.features.mobileBillCategory=1;changed=true;
+  }
   if(state.features.autoCabs!==1){
     if(!state.cats.some(c=>c.id==='cab')){
       const i=state.cats.findIndex(c=>c.id==='other');
@@ -29,8 +38,8 @@ export function migrateState(state){
   }
   return changed;
 }
-export function blank(){return{v:1,onboarded:false,theme:'system',houses:[],lock:{on:false,timeout:30},cats:defaultCats(),routes:defaultRoutes(),features:{autoCabs:1},records:[],dist:[],prices:{},mon:curMonth()};}
-export const UI={tt:'fuel',wTab:'cal',wsel:null,q:'',cf:'all',sort:'dateDesc',rv:'month',rentDir:'paid',rentHouse:'all',eh:'all',wbh:'all'};
+export function blank(){return{v:1,onboarded:false,theme:'system',houses:[],lock:{on:false,timeout:30},cats:defaultCats(),routes:defaultRoutes(),features:{autoCabs:1,mobileBillCategory:1},mobileBills:[],records:[],dist:[],prices:{},mon:curMonth()};}
+export const UI={tt:'fuel',wTab:'cal',wsel:null,q:'',cf:'all',sort:'dateDesc',rv:'month',rentDir:'paid',rentHouse:'all',eh:'all',wbh:'all',categorySelection:[]};
 export const catOf=id=>S.cats.find(c=>c.id===id);
 export const houseOf=id=>S.houses.find(h=>h.id===id);
 export function tenantProfiles(house){

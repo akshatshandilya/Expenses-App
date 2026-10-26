@@ -1,5 +1,5 @@
 /* @auto-imports */
-import {addMonths,curMonth,fmtClock,fmtDate,fmtStamp,monLabel,pad,today,validDate,weekday} from '../core/dates.js';
+import {addMonths,curMonth,fmtClock,fmtDate,fmtStamp,monLabel,monthDate,pad,today,validDate,weekday} from '../core/dates.js';
 import {MAX_UNIT,fmt,mul,parseMoney,qtyStr} from '../core/money.js';
 import {setPrice,travelCostPerKm} from '../core/rules.js';
 import {$,esc,uid} from '../core/util.js';
@@ -30,6 +30,16 @@ function resetRentStatus(card){
   const entry=card.querySelector('[data-rent-status-entry]');
   if(entry)entry.innerHTML='';
 }
+function resetMobileStatus(card){
+  const toggle=card.querySelector('[data-act="mobileToggle"]');
+  if(toggle)toggle.checked=false;
+  const label=card.querySelector('[data-mobile-toggle-label]');
+  if(label)label.textContent='Bill due';
+  const pill=card.querySelector('.rent-status-pill');
+  if(pill){pill.classList.remove('good');pill.classList.add('warn');pill.textContent='Bill due';}
+  const entry=card.querySelector('[data-mobile-status-entry]');
+  if(entry)entry.innerHTML='';
+}
 function journeySheet(d){
   const title=d.from||d.to?((d.from||'?')+' → '+(d.to||'?')):'Journey';
   const expenses=S.records.filter(r=>r.journeyId===d.id&&r.cat==='travel'&&['fuel','toll'].includes(r.sub)).sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:(b.ts||0)-(a.ts||0));
@@ -52,6 +62,27 @@ Object.assign(A,{
  pick:()=>go('pick'),
  pickGo:el=>{stack.pop();openCat(el.dataset.id);},
  newCat:()=>{DLG.nc=null;closeL();go('newCat');},
+ categorySelectionClear:()=>{UI.categorySelection=[];draw(true);},
+ categoryDeleteData:()=>{
+   const ids=(UI.categorySelection||[]).filter(id=>catOf(id));if(!ids.length)return;
+   const categories=S.cats.filter(c=>ids.includes(c.id)),records=S.records.filter(r=>ids.includes(r.cat)).length;
+   const journeys=ids.includes('travel')?S.dist.length:0,label=categories.map(c=>c.name).join(', ');
+   ask({title:'Delete data for '+categories.length+' categor'+(categories.length===1?'y':'ies')+'?',msg:'Remove '+records+' expense record'+(records===1?'':'s')+(journeys?' and '+journeys+' travel journey'+(journeys===1?'':'s'):'')+' from '+label+'. Categories and recurring mobile plans stay. This cannot be undone.',ok:'Delete selected data',danger:true,fn:()=>{
+     S.records=S.records.filter(r=>!ids.includes(r.cat));if(ids.includes('travel'))S.dist=[];
+     UI.categorySelection=[];persist();closeL();draw(true);toast('Selected category data deleted');
+   }});
+ },
+ categoryDeleteSelected:()=>{
+   const ids=(UI.categorySelection||[]).filter(id=>catOf(id));if(!ids.length)return;
+   const categories=S.cats.filter(c=>ids.includes(c.id)),records=S.records.filter(r=>ids.includes(r.cat)).length;
+   const journeys=ids.includes('travel')?S.dist.length:0,label=categories.map(c=>c.name).join(', ');
+   ask({title:'Delete '+categories.length+' categor'+(categories.length===1?'y':'ies')+'?',msg:'Remove '+label+', '+records+' expense record'+(records===1?'':'s')+(journeys?' and '+journeys+' travel journey'+(journeys===1?'':'s'):'')+', and all associated category data from this device. This cannot be undone.',ok:'Delete categories',danger:true,fn:()=>{
+     S.cats=S.cats.filter(c=>!ids.includes(c.id));S.records=S.records.filter(r=>!ids.includes(r.cat));
+     ids.forEach(id=>{delete S.prices[id];if(id==='travel')S.dist=[];if(id==='mobilebill')S.mobileBills=[];});
+     if(ids.includes(UI.cf))UI.cf='all';
+     UI.categorySelection=[];persist();closeL();draw(true);toast('Selected categories deleted');
+   }});
+ },
  catAdd:el=>{const c=catOf(el.dataset.id);if(c.kind==='bill')openQuick({cat:c.id});else openEntry(entryFor(c));},
  rec:el=>recSheet(el.dataset.id),
  edit:el=>{const r=S.records.find(x=>x.id===el.dataset.id);if(r){closeL();openEntry(editParams(r));}},
@@ -81,6 +112,49 @@ Object.assign(A,{
  todaySheet:()=>{let tz='';try{tz=Intl.DateTimeFormat().resolvedOptions().timeZone||'';}catch(e){}
    sheet('<div class="eyebrow">'+weekday(today())+'</div><h2 id="tsDate" style="margin:4px 0 2px">'+fmtDate(today())+'</h2><div class="num" id="tsTime" style="font-size:28px">'+fmtClock()+'</div><p class="sub" style="margin:6px 0 12px">Uses your phone’s clock'+(tz?' and time zone ('+esc(tz)+')':'')+'. The date changes by itself at midnight, and a new month starts with no spending.</p><div class="card flat" style="margin-bottom:0"><div class="eyebrow" style="margin-bottom:8px">'+monLabel(today().slice(0,7))+'</div>'+miniCal(today().slice(0,7))+'<div class="legend"><span><i></i>Has records</span></div></div><div class="row2"><button class="btn" data-act="closeL">Close</button></div>');},
  houses:()=>go('houses'),
+ mobileAdd:()=>{if(S.mobileBills.length>=200){toast('You can save up to 200 mobile bills','bad');return;}openEntry({spec:'mobileBill'});},
+ mobileEdit:el=>openEntry({spec:'mobileBill',id:el.dataset.id}),
+ mobileDelete:el=>{
+   const profile=S.mobileBills.find(x=>x.id===el.dataset.id);if(!profile)return;
+   ask({title:'Delete '+profile.name+' mobile bill?',msg:'Past payment records will be kept, but this family member’s recurring mobile bill will be removed. This cannot be undone.',ok:'Delete mobile bill',danger:true,fn:()=>{S.mobileBills=S.mobileBills.filter(x=>x.id!==profile.id);persist();closeL();draw(true);toast('Mobile bill deleted');}});
+ },
+ mobileAdvance:el=>{
+   const profile=S.mobileBills.find(x=>x.id===el.dataset.id),period=el.dataset.period;if(!profile||!period)return;
+   if(S.records.some(r=>r.cat==='mobilebill'&&r.mobileBillId===profile.id&&(r.period||r.date.slice(0,7))===period))return;
+   const dueDate=monthDate(period,profile.dueDay);
+   S.records.push({id:uid(),ts:Date.now(),cat:'mobilebill',mobileBillId:profile.id,period,date:dueDate,amountP:profile.amountP,party:profile.name,status:'due',notes:'',x:{provider:profile.provider,plan:profile.plan,dueDate:dueDate}});
+   persist();draw(true);toast('Bill added for '+monLabel(period));
+ },
+ mobileStatusSave:el=>{
+   const card=el.closest('.mobile-due-card'),date=card&&card.querySelector('[data-act="mobileStatusDate"]')?.value;
+   if(!validDate(date)){toast('Enter a valid mobile bill payment date','bad');return;}
+   const profile=S.mobileBills.find(x=>x.id===el.dataset.id),period=el.dataset.period;if(!profile){toast('Could not find this family member’s mobile bill','bad');return;}
+   let record=S.records.find(r=>r.cat==='mobilebill'&&r.mobileBillId===profile.id&&(r.period||r.date.slice(0,7))===period);
+   const dueDate=monthDate(period,profile.dueDay);
+   if(!record){record={id:uid(),ts:Date.now(),cat:'mobilebill',mobileBillId:profile.id,period,amountP:profile.amountP,party:profile.name,notes:''};S.records.push(record);}
+   record.date=date;record.status='paid';record.party=profile.name;record.x={provider:profile.provider,plan:profile.plan,dueDate:dueDate};
+   persist();draw(true);toast('Mobile bill marked paid');
+ },
+ mobileStatusCancel:el=>{const card=el.closest('.mobile-due-card');if(card)resetMobileStatus(card);},
+ mobileToggle:el=>{
+   const profile=S.mobileBills.find(x=>x.id===el.dataset.id),period=el.dataset.period;if(!profile){toast('Could not find this family member’s mobile bill','bad');draw(true);return;}
+   const record=S.records.find(r=>r.cat==='mobilebill'&&r.mobileBillId===profile.id&&(r.period||r.date.slice(0,7))===period);
+   if(el.checked){
+     const card=el.closest('.mobile-due-card');if(!card)return;
+     const entry=card.querySelector('[data-mobile-status-entry]');if(!entry||entry.querySelector('.rent-paid-entry'))return;
+     const pill=card.querySelector('.rent-status-pill'),label=card.querySelector('[data-mobile-toggle-label]');
+     if(pill){pill.classList.remove('warn');pill.classList.add('good');pill.textContent='Paid';}
+     if(label)label.textContent='Paid';
+     const date=record&&record.date||(period===curMonth()?today():monthDate(period,profile.dueDay));
+     entry.innerHTML='<div class="rent-paid-entry"><div class="fld rent-date-field"><label>Paid on<span class="ro" data-mobile-date-display>'+fmtDate(date)+'</span></label><input type="date" data-act="mobileStatusDate" aria-label="Paid on" value="'+esc(date)+'" min="2000-01-01" max="2100-12-31"></div><div class="rent-paid-actions"><button type="button" class="btn pri" data-act="mobileStatusSave" data-id="'+esc(profile.id)+'" data-period="'+esc(period)+'">Save paid</button><button type="button" class="btn" data-act="mobileStatusCancel">Cancel</button></div></div>';
+     return;
+   }
+   if(!el.checked){
+     const card=el.closest('.mobile-due-card'),pending=card&&card.querySelector('[data-mobile-status-entry] .rent-paid-entry');
+     if(pending){resetMobileStatus(card);return;}
+   }
+   if(record){record.status='due';persist();draw(true);toast('Mobile bill marked due');}
+ },
  addHouse:()=>openEntry({spec:'house'}),
  addUtilityHouse:()=>openEntry({spec:'house',utility:true}),
  editHouse:el=>openEntry({spec:'house',id:el.dataset.id}),
@@ -148,7 +222,7 @@ Object.assign(A,{
    '<button class="btn block" data-act="closeL">Close</button>'),
  deleteCategoryGo:el=>{const c=catOf(el.dataset.id);if(!c)return;const n=S.records.filter(r=>r.cat===c.id).length,d=c.id==='travel'?S.dist.length:0;
    const details=[n+' expense record'+(n===1?'':'s'),d+' travel journey'+(d===1?'':'s')].filter((x,i)=>i===0||d>0).join(' and ');
-   ask({title:'Delete '+c.name+'?',msg:'This removes the category and '+(n||d?details:'all associated data')+' from this device. This cannot be undone.',ok:'Delete category',danger:true,fn:()=>{S.cats=S.cats.filter(x=>x.id!==c.id);S.records=S.records.filter(r=>r.cat!==c.id);delete S.prices[c.id];if(c.id==='travel')S.dist=[];if(UI.cf===c.id)UI.cf='all';persist();closeL();draw(true);toast('Category deleted');}});},
+   ask({title:'Delete '+c.name+'?',msg:'This removes the category and '+(n||d?details:'all associated data')+' from this device. This cannot be undone.',ok:'Delete category',danger:true,fn:()=>{S.cats=S.cats.filter(x=>x.id!==c.id);S.records=S.records.filter(r=>r.cat!==c.id);delete S.prices[c.id];if(c.id==='travel')S.dist=[];if(c.id==='mobilebill')S.mobileBills=[];if(UI.cf===c.id)UI.cf='all';persist();closeL();draw(true);toast('Category deleted');}});},
  delCat:()=>{sheet('<h2>Delete a category’s records</h2><p class="sub" style="margin-bottom:8px">The category stays. Only its records are removed.</p><div class="list">'+S.cats.map(c=>{const n=S.records.filter(r=>r.cat===c.id).length+(c.id==='travel'?S.dist.length:0);return '<button class="rec" data-act="delCatGo" data-id="'+esc(c.id)+'"'+(n?'':' disabled style="opacity:.5"')+'>'+chipOf(c)+'<span class="rt"><b>'+esc(c.name)+'</b><small>'+n+' record'+(n===1?'':'s')+'</small></span></button>';}).join('')+'</div><button class="btn block" data-act="closeL">Close</button>');},
  delCatGo:el=>{const c=catOf(el.dataset.id);if(!c)return;ask({title:'Delete all '+c.name+' records?',msg:'Every record in this category is removed from this device. This cannot be undone.',ok:'Delete records',danger:true,fn:()=>{S.records=S.records.filter(r=>r.cat!==c.id);if(c.id==='travel')S.dist=[];persist();closeL();draw(true);toast('Records deleted');}});},
  clearAll:()=>ask({title:'Clear all data?',msg:'This permanently deletes every record, price and setting on this device. Consider making a backup first.',ok:'Clear everything',danger:true,type:'DELETE',fn:()=>{const t=S.theme;replaceState(blank());S.onboarded=true;S.theme=t;S.mon=curMonth();persist();applyLockEffects();closeL();tab('home');toast('All data cleared');}}),

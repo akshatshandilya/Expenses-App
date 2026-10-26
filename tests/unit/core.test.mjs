@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {parseMoney,parseQty,mul,fmt,rs} from '../../src/core/money.js';
-import {addMonths,validDate,validMonth,pad} from '../../src/core/dates.js';
+import {addMonths,monthDate,validDate,validMonth,pad} from '../../src/core/dates.js';
 import {S,replaceState,blank,migrateState,tenantProfiles,paymentDueLabel} from '../../src/data/state.js';
 import {spent,catSpent,priceOn,setPrice,sum,travelCostPerKm} from '../../src/core/rules.js';
 import {buildCsv,csvCell} from '../../src/core/csv.js';
@@ -24,6 +24,7 @@ test('dates: month and year transitions, leap years',()=>{
   assert.equal(addMonths('2026-12',1),'2027-01');assert.equal(addMonths('2026-01',-1),'2025-12');assert.equal(addMonths('2026-10',-22),'2024-12');
   assert.equal(validDate('2028-02-29'),true);assert.equal(validDate('2026-02-29'),false);assert.equal(validDate('2100-02-29'),false);assert.equal(validDate('2000-02-29'),true);
   assert.equal(validDate('2026-04-31'),false);assert.equal(validMonth('2026-13'),false);assert.equal(validMonth('2026-12'),true);
+  assert.equal(monthDate('2026-02',31),'2026-02-28');assert.equal(monthDate('2028-02',31),'2028-02-29');
 });
 const rec=(o)=>Object.assign({id:Math.random()+'',notes:'',ts:1},o);
 test('monthly totals: only real money in the selected month, rent received and unpaid bills excluded, distance never counted',()=>{
@@ -42,6 +43,15 @@ test('monthly totals: only real money in the selected month, rent received and u
   assert.equal(spent('2026-10'),159000);
   assert.equal(spent('2026-09'),99900+70000);
   assert.equal(sum([]),0);
+});
+test('paid mobile bills count in their billing month while advance unpaid bills do not',()=>{
+  replaceState(blank());
+  S.records=[
+    rec({cat:'mobilebill',date:'2026-10-15',period:'2026-10',amountP:79900,status:'paid'}),
+    rec({cat:'mobilebill',date:'2026-11-20',period:'2026-11',amountP:79900,status:'due'})
+  ];
+  assert.equal(catSpent('2026-10','mobilebill'),79900);
+  assert.equal(catSpent('2026-11','mobilebill'),0);
 });
 test('changing the default price never rewrites saved records',()=>{
   replaceState(blank());
@@ -82,6 +92,16 @@ test('legacy state gains Auto and Cabs routes once without undoing a later delet
   old.cats=old.cats.filter(c=>c.id!=='cab');
   assert.equal(migrateState(old),false);
   assert.equal(old.cats.some(c=>c.id==='cab'),false);
+});
+test('legacy state gains Mobile Bill once and does not restore it after deletion',()=>{
+  const old=blank();old.features={};old.cats=old.cats.filter(c=>c.id!=='mobilebill');delete old.mobileBills;
+  assert.equal(migrateState(old),true);
+  assert.equal(old.cats.some(c=>c.id==='mobilebill'),true);
+  assert.deepEqual(old.mobileBills,[]);
+  assert.equal(old.features.mobileBillCategory,1);
+  old.cats=old.cats.filter(c=>c.id!=='mobilebill');
+  assert.equal(migrateState(old),false);
+  assert.equal(old.cats.some(c=>c.id==='mobilebill'),false);
 });
 test('tenant profiles normalize legacy names and retain agreement data',()=>{
   assert.deepEqual(tenantProfiles({tenants:['Asha Rao',{name:'Ben Singh',agStart:'2026-01-01',rentAmountP:700000}]}),[

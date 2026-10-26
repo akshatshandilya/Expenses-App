@@ -24,21 +24,27 @@ V.home=()=>{
   if(!prev&&!tot)delta='Nothing recorded for this month yet.';
   else if(!prev)delta='No spending recorded in '+MONTHS[+addMonths(mk,-1).slice(5)-1]+'.';
   else{const pc=Math.round((tot-prev)/prev*100);delta=(pc===0?'Same as ':Math.abs(pc)+'% '+(pc>0?'more':'less')+' than ')+MONTHS[+addMonths(mk,-1).slice(5)-1]+' ('+fmt(prev)+')';}
+  UI.categorySelection=(UI.categorySelection||[]).filter(id=>S.cats.some(c=>c.id===id));
+  const selecting=UI.categorySelection.length>0,selected=new Set(UI.categorySelection);
   const tiles=S.cats.map(c=>{const t=catSpent(mk,c.id);const rv=c.kind==='rent'?sum(recsIn(mk,r=>isIncome(r)&&r.status!=='due')):0;
-    return '<button class="tile" data-act="openCat" data-id="'+esc(c.id)+'">'+chipOf(c)+'<b>'+esc(c.name)+'</b><span class="num">'+fmt(t)+'</span>'+(rv?'<small>+'+fmt(rv)+' received</small>':'')+'</button>';}).join('')+
+    return '<div class="category-item" data-id="'+esc(c.id)+'"><button class="tile" data-act="openCat" data-id="'+esc(c.id)+'" aria-label="'+esc(c.name)+', hold to select or drag while held to reorder" aria-pressed="'+selected.has(c.id)+'">'+chipOf(c)+'<b>'+esc(c.name)+'</b><span class="num">'+fmt(t)+'</span>'+(rv?'<small>+'+fmt(rv)+' received</small>':'')+'</button><input class="category-check" type="checkbox" data-act="categoryCheck" data-id="'+esc(c.id)+'" aria-label="Select '+esc(c.name)+'"'+(selecting?'':' hidden')+(selected.has(c.id)?' checked':'')+'></div>';}).join('')+
     '<button class="tile add" data-act="newCat" aria-label="Add a custom category">'+ic('plus',24)+'<b>New category</b></button>';
+  const selectedIds=UI.categorySelection,selectedData=selectedIds.reduce((total,id)=>total+S.records.filter(r=>r.cat===id).length+(id==='travel'?S.dist.length:0),0);
+  const bulk='<div class="category-bulk-actions" data-category-bulk'+(selecting?'':' hidden')+'><div class="category-bulk-heading"><b>'+selectedIds.length+' selected</b><button class="link" data-act="categorySelectionClear">Cancel</button></div>'+
+    '<button class="btn soft block" data-act="categoryDeleteData"'+(selectedData?'':' disabled')+'>Delete selected category data</button>'+
+    '<button class="btn dan block" data-act="categoryDeleteSelected">Delete selected categories</button></div>';
   const recent=S.records.slice().sort((a,b)=>(b.ts||0)-(a.ts||0)||(a.date<b.date?1:-1)).slice(0,5);
   return '<header class="th"><div><div class="eyebrow">'+g+'</div><h1>Expenses</h1></div><button class="clockb" data-act="todaySheet" aria-label="Open today and calendar"><span class="clkd">'+ic('calendar',16)+'<span id="clkDate">'+dayLine()+'</span></span><span class="clkt" id="clkTime">'+fmtClock()+'</span></button></header>'+monNav()+
    '<section class="card hero" aria-label="Month summary"><div class="eyebrow">Spent in '+monLabel(mk)+'</div><div class="num big">'+fmt(tot)+'</div><div class="delta">'+delta+'</div>'+
    ((recv||due)?'<div class="pills">'+(recv?'<span class="pill good">'+ic('arrIn',14)+'Rent received '+fmt(recv)+' (not counted)</span>':'')+(due?'<span class="pill warn">Due '+fmt(due)+' (not counted yet)</span>':'')+'</div>':'')+'</section>'+
    '<button class="btn pri block" data-act="pick" style="min-height:54px;font-size:16px">'+ic('plus',22)+'Add expense</button>'+
-   '<div class="sech"><h2>Categories</h2></div><div class="grid3">'+tiles+'</div>'+
+   '<div class="sech"><h2>Categories</h2></div><p class="sub category-hint">Hold to select · drag while held to reorder</p><div class="grid3'+(selecting?' category-selection':'')+'">'+tiles+'</div>'+bulk+
    '<div class="sech"><h2>Recently added</h2><button class="link" data-act="tab" data-t="expenses">See all</button></div>'+
    (recent.length?recList(recent):empty('wallet','No expenses yet','Add your first expense and it will show up here.','<button class="btn pri" data-act="pick">Add expense</button>'));
 };
 
 V.pick=()=>hd('Add expense')+'<p class="sub" style="margin:-4px 2px 12px">Choose a category.</p><div class="list">'+S.cats.map(c=>{
-  const d={water:'Pick a delivery date on the calendar',travel:'Distance, fuel and toll',rent:'Rent paid or received',cab:'Auto-rickshaw and cab rides',gas:'Cylinders × price',groceries:'Items or a simple total',electricity:'Bills for one or more houses',waterbill:'Monthly bill'}[c.id]||(c.kind==='unit'?'Quantity × price':'Amount and notes');
+  const d={water:'Pick a delivery date on the calendar',travel:'Distance, fuel and toll',rent:'Rent paid or received',mobilebill:'Family mobile plans and paid dates',cab:'Auto-rickshaw and cab rides',gas:'Cylinders × price',groceries:'Items or a simple total',electricity:'Bills for one or more houses',waterbill:'Monthly bill'}[c.id]||(c.kind==='unit'?'Quantity × price':'Amount and notes');
   return '<button class="rec" data-act="pickGo" data-id="'+esc(c.id)+'">'+chipOf(c)+'<span class="rt"><b>'+esc(c.name)+'</b><small>'+d+'</small></span>'+ic('chevR',18)+'</button>';}).join('')+
   '<button class="rec" data-act="newCat"><span class="ci">'+ic('plus',22)+'</span><span class="rt"><b>New category</b><small>Create your own, such as Internet or School fees</small></span>'+ic('chevR',18)+'</button></div>';
 
@@ -70,4 +76,3 @@ V.expenses=()=>{
    '<div class="fld"><label for="sort" class="lb">Sort by</label><select id="sort" data-sort="1"><option value="dateDesc"'+(UI.sort==='dateDesc'?' selected':'')+'>Date, newest first</option><option value="dateAsc"'+(UI.sort==='dateAsc'?' selected':'')+'>Date, oldest first</option><option value="amtDesc"'+(UI.sort==='amtDesc'?' selected':'')+'>Amount, high to low</option><option value="amtAsc"'+(UI.sort==='amtAsc'?' selected':'')+'>Amount, low to high</option></select></div>'+
    '<div id="explist">'+expListHtml()+'</div>';
 };
-

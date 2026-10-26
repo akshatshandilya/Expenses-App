@@ -1,6 +1,6 @@
 /* @auto-imports */
 import {$,esc} from '../core/util.js';
-import {DLG,S,catOf} from '../data/state.js';
+import {DLG,S,UI,catOf} from '../data/state.js';
 import {clearF,getF,recalc,syncShow} from './entry.js';
 import {ic} from './icons.js';
 import {A,V} from './registry.js';
@@ -21,11 +21,11 @@ export function draw(keep){
   if(t.n==='entry'&&getF()){recalc();syncShow();}
 }
 export function go(n,p){stack.push({n:n,p:p||{}});draw();}
-export function tab(n){setStack([{n:n,p:{}}]);clearF();draw();}
+export function tab(n){UI.categorySelection=[];setStack([{n:n,p:{}}]);clearF();draw();}
 export function back(){if(stack.length>1){stack.pop();clearF();draw();}}
 export function openCat(id){const c=catOf(id);if(!c)return;
   if(c.kind==='water'){go(S.prices.water?'water':'wSetup');}
-  else if(c.id==='electricity')go('electricity');else if(c.id==='waterbill')go('waterbill');else if(c.kind==='travel')go('travel');else if(c.kind==='rent')go('rent');else if(c.kind==='cab')go('cab');else go('cat',{id:id});}
+  else if(c.id==='electricity')go('electricity');else if(c.id==='waterbill')go('waterbill');else if(c.kind==='travel')go('travel');else if(c.kind==='rent')go('rent');else if(c.kind==='mobilebill')go('mobilebill');else if(c.kind==='cab')go('cab');else go('cat',{id:id});}
 export function toast(m,k){toastEl.className='toast'+(k==='bad'?' bad':'');toastEl.innerHTML=(k==='bad'?'':ic('check',18))+esc(m);toastEl.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>{toastEl.hidden=true;},2400);}
 export function sheet(html,mid){layer.className='layer'+(mid?' mid':'');layer.innerHTML='<div class="scrim" data-act="closeL"></div><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>'+html+'</div>';layer.hidden=false;const f=$('input,textarea,select,button.btn',layer);}
 export function closeL(){layer.hidden=true;layer.innerHTML='';}

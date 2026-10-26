@@ -4,6 +4,7 @@ export const ymd=(y,m,d)=>y+'-'+pad(m)+'-'+pad(d);
 export const today=()=>{const d=new Date();return ymd(d.getFullYear(),d.getMonth()+1,d.getDate());};
 export const curMonth=()=>today().slice(0,7);
 export function addMonths(mk,n){const a=mk.split('-').map(Number);const d=new Date(a[0],a[1]-1+n,1);return d.getFullYear()+'-'+pad(d.getMonth()+1);}
+export function monthDate(mk,day){const a=mk.split('-').map(Number),last=new Date(a[0],a[1],0).getDate();return ymd(a[0],a[1],Math.min(day,last));}
 export const monLabel=mk=>{const a=mk.split('-').map(Number);return MONTHS[a[1]-1]+' '+a[0];};
 export const monShort=mk=>{const a=mk.split('-').map(Number);return MONTHS[a[1]-1].slice(0,3)+' '+a[0];};
 export const validMonth=s=>/^\d{4}-(0[1-9]|1[0-2])$/.test(s||'')&&+s.slice(0,4)>=2000;

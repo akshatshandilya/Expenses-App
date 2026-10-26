@@ -1,6 +1,6 @@
 # Expenses
 
-A private, offline household expense tracker for Android (₹ INR, DD/MM/YYYY). Water bottles with a calendar and price history, travel (distance, fuel, toll), Auto and Cabs rides with editable route presets, groceries, gas cylinders, electricity and water bills, rent, custom categories, monthly reports, CSV export and encrypted backup.
+A private, offline household expense tracker for Android (₹ INR, DD/MM/YYYY). Water bottles with a calendar and price history, travel (distance, fuel, toll), Auto and Cabs rides with editable route presets, groceries, gas cylinders, electricity and water bills, rent, recurring family mobile bills, custom categories, monthly reports, CSV export and encrypted backup.
 
 The user interface follows the approved HTML prototype (`design/expenses-prototype-approved.html`), with Auto and Cabs added from its supplied feature reference. The app runs inside an Android WebView (Capacitor 8), with encrypted storage, app lock, file export and the launch animation added around it.
 
@@ -24,7 +24,7 @@ npm test                 # unit tests: money, months, price history, storage, ba
 npm run audit:project    # static privacy/security checks
 ```
 
-Browser checks need a Chromium (set `CHROME_PATH` to its executable): `npm run test:smoke`, `npm run test:water`, `npm run test:travel`, `npm run test:cabs`, `npm run test:rent`, `npm run test:parity`.
+Browser checks need Playwright and a Chromium (set `CHROME_PATH` to its executable): `npm run test:smoke`, `npm run test:water`, `npm run test:travel`, `npm run test:cabs`, `npm run test:rent`, `npm run test:mobile`, `npm run test:categories`, `npm run test:parity`.
 
 To build the APK locally you also need JDK 21 and the Android SDK: `npm run sync`, then `cd android && gradlew assembleRelease`. The APK is in `android/app/build/outputs/apk/release/`.
 
@@ -33,7 +33,9 @@ To build the APK locally you also need JDK 21 and the Android SDK: `npm run sync
 - **Water Bottles**: price asked once, then the calendar opens directly. Several deliveries a day. Each delivery keeps the unit price it was saved with; changing the default price never rewrites saved records.
 - **Travel**: Distance, Fuel, Toll. Save a vehicle on an individual journey to reuse it for that journey’s fuel and toll entries. Cost per km is calculated from linked Fuel and Toll expenses and the distance of journeys with those expenses. Log fuel and toll independently from the Travel cards too. Distance is never counted as spending.
 - **Rent**: Choose Rent Paid or Rent Received, then view monthly payment cards by house (and by tenant for received rent). Set a monthly rent amount and due day in Houses; cards start as Payment due and can be marked paid or received. Future months let you log rent in advance. Tenant agreements and monthly rent stay with their receiving-rent house.
+- **Mobile Bill**: Save a recurring bill for each family member with their provider, prepaid or postpaid type, due date and amount. Monthly cards let you mark a bill paid and save its payment date; future months can be logged in advance.
 - **Auto and Cabs**: Log Auto-rickshaw or Cab fares against saved routes, or enter a one-off route. Route presets can be renamed, added or removed.
+- **Category cards**: On Home, hold a card to enter multi-select mode; tap other cards or their checkboxes to select more. Use the bottom actions to delete selected category data or delete the categories, with confirmation. Drag a card while holding to reorder and save the category order.
 - **Categories** can be deleted from Settings. Choose any existing category; deleting it also deletes its expense records and, for Travel, its journeys.
 - **Money** is stored as whole paise; quantities in thousandths. Unit price x quantity is rounded half-up to the paisa.
 - **Month a record belongs to**: ordinary purchases by date, bills by billing month. Unpaid bills and rent received are not counted as spending.

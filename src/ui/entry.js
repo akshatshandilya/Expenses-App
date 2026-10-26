@@ -1,5 +1,5 @@
 /* @auto-imports */
-import {curMonth,fmtDate,leftInfo,monLabel,monShort,today,validDate,validMonth} from '../core/dates.js';
+import {curMonth,fmtDate,leftInfo,monLabel,monShort,monthDate,today,validDate,validMonth} from '../core/dates.js';
 import {MAX_MONEY,MAX_QTY,MAX_UNIT,fmt,mul,parseMoney,parseQty,qtyStr,rs} from '../core/money.js';
 import {priceOn,recMonth,setPrice} from '../core/rules.js';
 import {$,$$,esc,uid} from '../core/util.js';
@@ -48,7 +48,7 @@ export function fieldHtml(f){
     case 'area':inner='<textarea id="'+id+'" data-f="'+k+'" maxlength="'+(f.max||200)+'" placeholder="'+esc(f.ph||'')+'">'+esc(val)+'</textarea>';break;
     case 'money':inner='<div class="pre"><span>₹</span><input id="'+id+'" inputmode="decimal" data-f="'+k+'" value="'+esc(val)+'" placeholder="0" autocomplete="off"></div>';break;
     case 'qty':inner='<div class="qty">'+(f.step?'<button type="button" class="ib" data-act="step" data-k="'+k+'" data-d="-1" aria-label="Decrease">−</button>':'')+'<div class="pre"><input id="'+id+'" inputmode="decimal" data-f="'+k+'" value="'+esc(val)+'" placeholder="0" autocomplete="off"><span class="sfx" style="font:500 13px var(--fb)">'+esc(typeof f.sfx==='function'?f.sfx(v):(f.sfx||''))+'</span></div>'+(f.step?'<button type="button" class="ib" data-act="step" data-k="'+k+'" data-d="1" aria-label="Increase">+</button>':'')+'</div>';break;
-    case 'select':inner='<select'+(k==='dueBy'?' class="device-theme"':'')+' id="'+id+'" data-f="'+k+'"><option value="">Not specified</option>'+f.opts.map(o=>{const value=Array.isArray(o)?o[0]:o,label=Array.isArray(o)?o[1]:o;return '<option value="'+esc(value)+'"'+(value===val?' selected':'')+'>'+esc(label)+'</option>';}).join('')+'</select>';break;
+    case 'select':inner='<select'+(f.deviceTheme||k==='dueBy'?' class="device-theme"':'')+' id="'+id+'" data-f="'+k+'">'+(f.placeholder===false?'':'<option value="">'+esc(f.placeholder||'Not specified')+'</option>')+f.opts.map(o=>{const value=Array.isArray(o)?o[0]:o,label=Array.isArray(o)?o[1]:o;return '<option value="'+esc(value)+'"'+(value===val?' selected':'')+'>'+esc(label)+'</option>';}).join('')+'</select>';break;
     case 'hsel':inner='<select id="'+id+'" data-f="'+k+'"><option value="">Choose a house</option>'+S.houses.map(h=>'<option value="'+esc(h.id)+'"'+(h.id===val?' selected':'')+'>'+esc(h.name)+'</option>').join('')+'</select>';break;
     case 'tenantSelect':{const house=houseOf(v.houseId),profiles=v.addHouse?(v.newTenants||[]).filter(t=>t.name.trim()):tenantProfiles(house);
       inner=tenantPicker(val,profiles,id,'tenantPicker');break;}
@@ -172,6 +172,29 @@ export function getSpec(p){
       fill:r=>({houseId:r.houseId||'',period:r.period||r.date.slice(0,7),date:r.date,amount:rs(r.amountP),party:r.party||'',due:(r.x&&r.x.due)||'',paid:r.status!=='due',notes:r.notes||''}),
       build:v=>Object.assign({cat:c.id,date:v.date,period:v.period,amountP:parseMoney(v.amount),party:v.party.trim(),status:v.paid?'paid':'due',notes:v.notes.trim(),x:{due:v.due}},c.id==='electricity'||c.id==='waterbill'?{houseId:v.houseId}:{}),
       dup:rec=>{const byHouse=c.id==='electricity'||c.id==='waterbill',o=S.records.find(r=>r.cat===c.id&&r.id!==rec.id&&r.period===rec.period&&(!byHouse||r.houseId===rec.houseId));return o?'A '+c.name.toLowerCase()+(byHouse&&houseOf(rec.houseId)?' for '+houseOf(rec.houseId).name:'')+' for '+monLabel(rec.period)+' is already saved ('+fmt(o.amountP)+'). You can still save this one.':'';}};
+    case 'mobileBill':return{cat:'mobilebill',store:'mobileBills',title:p.id?'Edit mobile bill':'Add mobile bill details',save:'Save',
+      fields:[{k:'name',t:'text',l:"Member's name",ph:'e.g. Priya',req:1},{k:'provider',t:'select',l:'Provider',placeholder:'Choose a provider',deviceTheme:true,opts:['Airtel','Jio','Vi','BSNL','MTNL','Other'],req:1},
+       {k:'plan',t:'radio',l:'Connection type',opts:[['prepaid','Prepaid'],['postpaid','Postpaid']]},
+       {k:'dueBy',t:'select',l:'Bill Due By',deviceTheme:true,placeholder:false,opts:[['1','1st of every month'],['5','5th of every month'],['15','15th of every month'],['custom','Custom']]},
+       {k:'dueDay',t:'number',min:1,max:31,l:'Day of every month',ph:'e.g. 20',show:v=>v.dueBy==='custom'},
+       {k:'amount',t:'money',l:'Bill amount'}],
+      init:()=>({name:'',provider:'',plan:'prepaid',dueBy:'1',dueDay:'',amount:''}),
+      fill:r=>({name:r.name,provider:r.provider,plan:r.plan,dueBy:['1','5','15'].includes(String(r.dueDay))?String(r.dueDay):'custom',dueDay:['1','5','15'].includes(String(r.dueDay))?'':String(r.dueDay),amount:rs(r.amountP)}),
+      build:v=>({name:v.name.trim(),provider:v.provider,plan:v.plan,dueDay:v.dueBy==='custom'?Number(v.dueDay):Number(v.dueBy),amountP:parseMoney(v.amount)}),
+      check:v=>{
+        const errors={};
+        if(!['Airtel','Jio','Vi','BSNL','MTNL','Other'].includes(v.provider))errors.provider='Choose a mobile service provider.';
+        if(!['prepaid','postpaid'].includes(v.plan))errors.plan='Choose prepaid or postpaid.';
+        if(!['1','5','15','custom'].includes(v.dueBy))errors.dueBy='Choose a bill due day.';
+        if(v.dueBy==='custom'&&(!/^\d+$/.test(String(v.dueDay||''))||Number(v.dueDay)<1||Number(v.dueDay)>31))errors.dueDay='Enter a day from 1 to 31.';
+        if(!S.mobileBills.some(b=>b.id===F.id&&b.name.trim().toLowerCase()===v.name.trim().toLowerCase())&&S.mobileBills.some(b=>b.name.trim().toLowerCase()===v.name.trim().toLowerCase()))errors.name='A mobile bill is already saved for this family member.';
+        return errors;
+      }};
+    case 'mobilePayment':return{cat:'mobilebill',title:'Edit mobile bill payment',save:'Save payment',
+      fields:[{k:'period',t:'month',l:'Billing month'},{k:'date',t:'date',l:'Paid on'},{k:'amount',t:'money',l:'Bill amount'},{k:'notes',t:'area',l:'Notes',opt:1}],
+      init:()=>({period:S.mon,date:defDate(p),amount:'',notes:''}),
+      fill:r=>({period:r.period||r.date.slice(0,7),date:r.date,amount:rs(r.amountP),notes:r.notes||''}),
+      build:v=>{const old=S.records.find(r=>r.id===F.id);return{cat:'mobilebill',mobileBillId:old.mobileBillId,date:v.date,period:v.period,amountP:parseMoney(v.amount),party:old.party,notes:v.notes.trim(),status:old.status,x:old.x};}};
     case 'rent':{const pd=(p.dir||'paid')==='paid',period=p.pre&&p.pre.period||S.mon;
       const prior=S.records.filter(r=>r.cat==='rent'&&r.dir===(pd?'paid':'received')).sort((x,y)=>x.date<y.date?1:x.date>y.date?-1:(y.ts||0)-(x.ts||0))[0];
       const dirHouses=S.houses.filter(h=>houseRentDir(h)===(pd?'paid':'received'));
@@ -228,7 +251,7 @@ export function getSpec(p){
   }
 }
 export function openEntry(p){
-  const sp=getSpec(p);const arr=sp.store==='dist'?S.dist:sp.store==='houses'?S.houses:S.records;
+  const sp=getSpec(p);const arr=sp.store==='dist'?S.dist:sp.store==='houses'?S.houses:sp.store==='mobileBills'?S.mobileBills:S.records;
   const rec=p.id?arr.find(r=>r.id===p.id):null;
   F={sp:sp,p:p,id:rec?rec.id:uid(),vals:rec?sp.fill(rec):sp.init(),manual:false,saving:false,dupAck:false,unitTouched:!!rec};
   if(rec&&sp.manualOf)F.manual=sp.manualOf(rec);
@@ -238,6 +261,7 @@ export function openEntry(p){
 export function entryFor(c){return c.kind==='groceries'?{spec:'groceries'}:c.kind==='unit'?{spec:'unit',cat:c.id}:c.kind==='bill'?{spec:'bill',cat:c.id}:{spec:'simple',cat:c.id};}
 export function editParams(r){const c=catOf(r.cat)||{};let s='simple';
   if(r.cat==='water')s='water';else if(r.cat==='travel')s=r.sub==='fuel'?'fuel':r.sub==='toll'?'toll':'simple';
+  else if(r.cat==='mobilebill')s='mobilePayment';
   else if(r.cat==='cab')s='cab';
   else if(c.kind==='unit')s='unit';else if(c.kind==='bill')s='bill';else if(c.kind==='rent')s='rent';else if(c.kind==='groceries')s='groceries';
   return{spec:s,cat:r.cat,id:r.id,dir:r.dir};}
@@ -335,7 +359,7 @@ export function saveForm(){
   const e=validate();showErrors(e);if(Object.keys(e).length){toast('Check the highlighted fields','bad');return;}
   if(v.date&&sp.fields.some(f=>f.k==='date')&&!validDate(v.date)){return;}
   const base=sp.build(v);
-  const old=(sp.store==='dist'?S.dist:sp.store==='houses'?S.houses:S.records).find(x=>x.id===F.id),rec=Object.assign({id:F.id,ts:(old&&old.ts)?old.ts:Date.now()},base);if(old)rec.es=Date.now();
+  const old=(sp.store==='dist'?S.dist:sp.store==='houses'?S.houses:sp.store==='mobileBills'?S.mobileBills:S.records).find(x=>x.id===F.id),rec=Object.assign({id:F.id,ts:(old&&old.ts)?old.ts:Date.now()},base);if(old)rec.es=Date.now();
   if(sp.cat==='travel'&&(F.p.journeyId||(old&&old.journeyId)))rec.journeyId=F.p.journeyId||(old&&old.journeyId);
   if(sp.cat==='travel'&&rec.journeyId&&rec.x&&rec.x.vehicle){
     const journey=S.dist.find(d=>d.id===rec.journeyId);
@@ -347,7 +371,7 @@ export function saveForm(){
     S.houses.push(h);base.houseId=h.id;base.party=h.name;rec.houseId=h.id;rec.party=h.name;
   }
   F.saving=true;const b=$('#saveBtn');if(b)b.disabled=true;
-  upsert(sp.store==='dist'?S.dist:sp.store==='houses'?S.houses:S.records,rec);
+  upsert(sp.store==='dist'?S.dist:sp.store==='houses'?S.houses:sp.store==='mobileBills'?S.mobileBills:S.records,rec);
   if(sp.cat==='rent'){
     const house=houseOf(rec.houseId);
     if(house){

@@ -96,6 +96,16 @@ h1,h2,h3,p{margin:0}
 .tile .num{font-size:17px;margin-top:auto}
 .tile small{font-size:11.5px;color:var(--good);font-weight:600;margin-top:-6px}
 .tile.add{border-style:dashed;align-items:center;justify-content:center;color:var(--ink2);background:transparent}
+.category-item{position:relative;min-width:0}
+.category-item>.tile{width:100%;height:100%}
+.category-check{position:absolute;top:8px;right:8px;width:23px;height:23px;margin:0;accent-color:var(--accent);background:var(--surface);border-radius:6px;box-shadow:0 1px 5px rgba(0,0,0,.16);z-index:2}
+.category-bulk-actions{position:sticky;bottom:86px;z-index:8;padding:10px;background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);margin:8px 0 14px}
+.category-bulk-heading{display:flex;align-items:center;justify-content:space-between;margin:0 2px 8px}
+.category-bulk-actions .btn{min-height:44px;margin-top:6px}
+.category-selection .category-item>.tile{border-color:var(--accent)}
+.category-hint{font-size:12px;margin:-4px 2px 8px}
+.tile.category-held{transform:scale(.97);box-shadow:var(--shadow)}
+.tile.category-reordering{opacity:.65;outline:2px dashed var(--accent);outline-offset:2px;z-index:1}
 .sech{display:flex;align-items:baseline;justify-content:space-between;margin:18px 2px 8px}
 .sech h2{font:700 17px var(--fd)}
 .link{background:none;border:0;color:var(--accent);font-weight:700;min-height:36px;padding:0 4px}

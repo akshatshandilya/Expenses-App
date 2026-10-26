@@ -70,3 +70,9 @@ test('backup validation accepts tenant rosters and rejects malformed tenant data
   data.data.records[0].tenant={name:'Asha Rao'};
   assert.match(validateData(data),/record in the backup is not valid/);
 });
+test('backup validation accepts recurring mobile bills and rejects invalid profile fields',()=>{
+  const data={app:'expenses',v:1,data:Object.assign(blank(),{mobileBills:[{id:'mb1',name:'Priya',provider:'Jio',plan:'postpaid',dueDay:20,amountP:79900}]})};
+  assert.equal(validateData(data),null);
+  data.data.mobileBills[0].dueDay=32;
+  assert.match(validateData(data),/mobile bill in the backup is not valid/);
+});

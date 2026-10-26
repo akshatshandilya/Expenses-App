@@ -29,12 +29,14 @@ export function recTitle(r){
     case 'travel':return r.sub==='fuel'?'Fuel · '+((r.x&&r.x.fuelType)||'Fuel'):r.sub==='toll'?(r.party||'Toll'):(r.title||'Travel charge');
     case 'cab':return ((r.x&&r.x.mode)||'Ride')+' · '+(r.party||'Route');
     case 'rent':{const h=houseOf(r.houseId);return (r.dir==='received'?'Rent received':'Rent paid')+(h?' · '+h.name:(r.party?' · '+r.party:''));}
+    case 'mobilebill':return 'Mobile bill'+(r.party?' · '+r.party:'');
     default:{const c=catOf(r.cat);return r.title||(c?c.name:'Expense');}
   }
 }
 export function recSub(r){
   const b=[fmtDate(r.date)];
   if(r.cat==='rent'&&r.dir==='received'&&r.tenant)b.push(r.tenant);
+  if(r.cat==='mobilebill'&&r.x&&r.x.provider)b.push(r.x.provider);
   if(r.qtyM&&r.unitP)b.push(qtyStr(r.qtyM)+' × '+fmt(r.unitP));
   if(r.period)b.push('For '+monShort(r.period));
   if(r.cat==='groceries'&&r.party)b.push(r.party);

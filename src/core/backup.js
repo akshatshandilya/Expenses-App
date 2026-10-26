@@ -29,6 +29,16 @@ export function validateData(d){
   }
   const ids=new Set(x.cats.map(c=>c&&c.id));
   for(const c of x.cats){if(!c||typeof c.id!=='string'||typeof c.name!=='string'||c.name.length>60||!/^#[0-9a-fA-F]{6}$/.test(c.color||'')||!ICONS[c.icon])return 'A category in the backup is not valid.';}
+  if(x.mobileBills!==undefined){
+    if(!Array.isArray(x.mobileBills)||x.mobileBills.length>200)return 'The mobile bills in the backup are not valid.';
+    const mobileBillIds=new Set(),mobileBillNames=new Set();
+    for(const b of x.mobileBills){
+      if(!b||typeof b.id!=='string'||!b.id||b.id.length>80||mobileBillIds.has(b.id)||typeof b.name!=='string'||!b.name.trim()||b.name.length>80||mobileBillNames.has(b.name.trim().toLowerCase())||
+        !['Airtel','Jio','Vi','BSNL','MTNL','Other'].includes(b.provider)||!['prepaid','postpaid'].includes(b.plan)||
+        !Number.isInteger(b.dueDay)||b.dueDay<1||b.dueDay>31||!Number.isInteger(b.amountP)||b.amountP<=0||b.amountP>MAX_MONEY)return 'A mobile bill in the backup is not valid.';
+      mobileBillIds.add(b.id);mobileBillNames.add(b.name.trim().toLowerCase());
+    }
+  }
   if(x.houses!==undefined&&(!Array.isArray(x.houses)||x.houses.length>200||x.houses.some(h=>!h||typeof h.id!=='string'||typeof h.name!=='string'||h.name.length>80||(h.tenants!==undefined&&(!Array.isArray(h.tenants)||h.tenants.length>100||h.tenants.some(t=>typeof t==='string'?(!t.trim()||t.length>80):(!t||typeof t.name!=='string'||!t.name.trim()||t.name.length>80||(t.agStart&&!validDate(t.agStart))||(t.agEnd&&!validDate(t.agEnd))||(t.agStart&&t.agEnd&&t.agEnd<=t.agStart)||(t.rentAmountP!==undefined&&t.rentAmountP!==null&&(!Number.isInteger(t.rentAmountP)||t.rentAmountP<=0||t.rentAmountP>MAX_MONEY)))))))))return 'A house in the backup is not valid.';
   const validDue=x=>(x.dueBy===undefined||['first','seventh','custom'].includes(x.dueBy))&&
     (x.dueDay===undefined||x.dueDay===null||(Number.isInteger(x.dueDay)&&x.dueDay>=1&&x.dueDay<=31))&&
