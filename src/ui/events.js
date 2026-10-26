@@ -41,14 +41,36 @@ export function bindEvents(){
     setCategorySelection(selected.includes(id)?selected.filter(x=>x!==id):selected.concat(id));
   }
   function categoryItemFromTarget(target){return target&&target.closest('.grid3 .category-item[data-id]');}
+  function animateCategoryMove(grid,move){
+    const items=Array.from(grid.querySelectorAll('.category-item[data-id]'));
+    const before=new Map(items.map(item=>[item,item.getBoundingClientRect()]));
+    move();
+    Array.from(grid.querySelectorAll('.category-item[data-id]')).forEach(item=>{
+      const oldRect=before.get(item);if(!oldRect)return;
+      const rect=item.getBoundingClientRect(),dx=oldRect.left-rect.left,dy=oldRect.top-rect.top;
+      if(!dx&&!dy)return;
+      item.style.transition='none';
+      item.style.transform='translate3d('+dx+'px,'+dy+'px,0)';
+      item.getBoundingClientRect();
+      requestAnimationFrame(()=>{item.style.transition='';item.style.transform='';});
+    });
+  }
+  function moveCategoryGhost(gesture,x,y){
+    if(gesture.ghost)gesture.ghost.style.transform='translate3d('+(x-gesture.x)+'px,'+(y-gesture.y)+'px,0)';
+  }
+  function removeCategoryGhost(gesture){
+    if(gesture.ghost){gesture.ghost.remove();gesture.ghost=null;}
+    categoryTiles().forEach(item=>{item.style.transition='';item.style.transform='';});
+  }
   function cancelCategoryGesture(restore){
     const gesture=categoryGesture;if(!gesture)return;
     clearTimeout(gesture.timer);
     gesture.tile.classList.remove('category-held','category-reordering');
     if(restore&&gesture.dragging&&gesture.origin){
       const add=gesture.grid.querySelector('.tile.add');
-      gesture.origin.forEach(tile=>gesture.grid.insertBefore(tile,add||null));
+      animateCategoryMove(gesture.grid,()=>gesture.origin.forEach(tile=>gesture.grid.insertBefore(tile,add||null)));
     }
+    removeCategoryGhost(gesture);
     categoryGesture=null;
   }
   function beginCategoryGesture(e){
@@ -56,10 +78,10 @@ export function bindEvents(){
     if(!item||e.target.closest('.category-check')||e.button!==undefined&&e.button!==0)return;
     const tile=item.querySelector('.tile[data-id]');
     const grid=tile.closest('.grid3');
-    categoryGesture={item:item,tile:grid?tile:null,grid:grid,pointerId:e.pointerId,x:e.clientX,y:e.clientY,long:false,dragging:false,origin:null,timer:0,wasSelected:selectedCategories().includes(item.dataset.id)};
+    categoryGesture={item:item,tile:grid?tile:null,grid:grid,pointerId:e.pointerId,x:e.clientX,y:e.clientY,long:false,dragging:false,origin:null,timer:0};
     if(!grid){categoryGesture=null;return;}
     const gesture=categoryGesture;
-    gesture.timer=setTimeout(()=>{if(categoryGesture!==gesture)return;gesture.long=true;gesture.tile.classList.add('category-held');setCategorySelection(selectedCategories().concat(gesture.item.dataset.id));},450);
+    gesture.timer=setTimeout(()=>{if(categoryGesture!==gesture)return;gesture.long=true;gesture.tile.classList.add('category-held');},450);
   }
   function moveCategoryGesture(e){
     const gesture=categoryGesture;if(!gesture||gesture.pointerId!==e.pointerId)return;
@@ -71,24 +93,30 @@ export function bindEvents(){
     if(Math.hypot(dx,dy)>10&&!gesture.dragging){
       gesture.dragging=true;
       gesture.origin=categoryTiles();
-      if(!gesture.wasSelected)setCategorySelection(selectedCategories().filter(id=>id!==gesture.item.dataset.id));
       gesture.tile.classList.remove('category-held');
       gesture.tile.classList.add('category-reordering');
-      try{gesture.tile.setPointerCapture(e.pointerId);}catch(x){}
+      const rect=gesture.tile.getBoundingClientRect(),ghost=gesture.tile.cloneNode(true);
+      ghost.classList.remove('category-reordering');
+      ghost.classList.add('category-drag-ghost');
+      ghost.removeAttribute('data-act');ghost.removeAttribute('data-id');ghost.setAttribute('aria-hidden','true');
+      ghost.style.left=rect.left+'px';ghost.style.top=rect.top+'px';ghost.style.width=rect.width+'px';ghost.style.height=rect.height+'px';
+      document.body.appendChild(ghost);gesture.ghost=ghost;
     }
     if(!gesture.dragging)return;
     if(e.cancelable)e.preventDefault();
+    moveCategoryGhost(gesture,e.clientX,e.clientY);
     const target=categoryItemFromTarget(document.elementFromPoint(e.clientX,e.clientY));
     if(!target||target===gesture.item||target.closest('.grid3')!==gesture.grid)return;
     const rect=target.getBoundingClientRect(),before=e.clientY<rect.top+rect.height/2||
       (e.clientY<=rect.bottom&&e.clientX<rect.left+rect.width/2);
     const nodes=categoryTiles(),from=nodes.indexOf(gesture.item),to=nodes.indexOf(target);
-    if(from<to&&!before)gesture.grid.insertBefore(gesture.item,target.nextSibling);
-    else if(from>to&&before)gesture.grid.insertBefore(gesture.item,target);
+    if(from<to&&!before)animateCategoryMove(gesture.grid,()=>gesture.grid.insertBefore(gesture.item,target.nextSibling));
+    else if(from>to&&before)animateCategoryMove(gesture.grid,()=>gesture.grid.insertBefore(gesture.item,target));
   }
   function endCategoryGesture(e,cancelled){
     const gesture=categoryGesture;if(!gesture||gesture.pointerId!==e.pointerId)return;
     if(gesture.long){
+      if(!gesture.dragging&&!cancelled)setCategorySelection(selectedCategories().concat(gesture.item.dataset.id));
       suppressTileClick=gesture.tile;
       clearTimeout(suppressClickTimer);
       suppressClickTimer=setTimeout(()=>{suppressTileClick=null;},1000);
