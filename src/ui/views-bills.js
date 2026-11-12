@@ -61,7 +61,7 @@ V.cat=p=>{
   const c=catOf(p.id);if(!c)return hd('Category')+empty('info','Category not found','It may have been removed.');
   const mk=S.mon,a=recsIn(mk,r=>r.cat===c.id).sort((x,y)=>x.date<y.date?1:-1);
   const pr=S.prices[c.id];
-  return hd(esc(c.name),(c.kind==='unit'&&pr?'<span class="pchip" style="cursor:default">'+fmt(pr.cur)+' / '+esc(c.unit||'unit')+'</span>':''))+monNav()+
+  return hd(esc(c.name),(c.kind==='unit'&&c.id!=='gas'&&pr?'<span class="pchip" style="cursor:default">'+fmt(pr.cur)+' / '+esc(c.unit||'unit')+'</span>':''))+monNav()+
    stats([['Total this month',fmt(sum(a.filter(counted)))],['Records',String(a.length)]])+
    (a.length?recList(a):empty(c.icon,'Nothing in '+monLabel(mk),'Add a record for this category.'))+
    '<div class="cta"><button class="btn pri block" data-act="catAdd" data-id="'+esc(c.id)+'">'+ic('plus',20)+'Add '+esc(c.name.toLowerCase())+'</button></div>';

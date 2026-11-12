@@ -35,6 +35,7 @@ export function recTitle(r){
 }
 export function recSub(r){
   const b=[fmtDate(r.date)];
+  if(r.cat==='gas'&&r.deliveryDate)b.push('Delivery '+fmtDate(r.deliveryDate));
   if(r.cat==='rent'&&r.dir==='received'&&r.tenant)b.push(r.tenant);
   if(r.cat==='mobilebill'&&r.x&&r.x.provider)b.push(r.x.provider);
   if(r.qtyM&&r.unitP)b.push(qtyStr(r.qtyM)+' × '+fmt(r.unitP));

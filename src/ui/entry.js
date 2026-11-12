@@ -76,17 +76,18 @@ export const unitHint=(id,v)=>{const u=parseMoney(v.unit),d=validDate(v.date)?pr
   if(d==null)return 'This price becomes your default for next time.';
   return u!=null&&u!==d?'Default is '+fmt(d)+'. Only this entry uses '+fmt(u)+'.':'Using the default price of '+fmt(d)+'.';};
 export function unitSpec(p){
-  const c=catOf(p.cat),W=c.kind==='water',un=c.unit||'unit',ups=c.units||un+'s';
-  return{cat:c.id,calc:true,title:(p.id?'Edit ':'Add ')+(W?'delivery':'purchase'),save:W?'Save delivery':'Save purchase',
-   fields:[{k:'date',t:'date',l:W?'Delivery date':'Purchase date'},{k:'qty',t:'qty',l:W?'Quantity':'Number of '+ups,step:1,sfx:ups,req:1},
-    {k:'unit',t:'money',l:'Price per '+un,hint:v=>unitHint(c.id,v)},{k:'total',t:'calc'},
-    {k:'setDef',t:'switch',l:'Use this price as my default from now on',opt:1,show:v=>!W&&!!S.prices[c.id]&&parseMoney(v.unit)>0&&parseMoney(v.unit)!==S.prices[c.id].cur},
-    {k:'notes',t:'area',l:W?'Notes':'Supplier or notes',opt:1}],
-   init:()=>{const d=defDate(p),pr=priceOn(c.id,d);return{date:d,qty:'1',unit:pr!=null?rs(pr):'',notes:'',setDef:false,total:''};},
-   fill:r=>({date:r.date,qty:qtyStr(r.qtyM),unit:rs(r.unitP),notes:r.notes||'',setDef:false,total:rs(r.amountP)}),
-   build:v=>{const q=parseQty(v.qty),u=parseMoney(v.unit);return{cat:c.id,date:v.date,qtyM:q,unitP:u,amountP:mul(q,u),notes:v.notes.trim()};},
-   after:(rec,v)=>{if(!W&&(!S.prices[c.id]||v.setDef))setPrice(c.id,rec.unitP,'all');},
-   unitDate:true};
+  const c=catOf(p.cat),W=c.kind==='water',G=c.id==='gas',un=c.unit||'unit',ups=c.units||un+'s';
+  return{cat:c.id,calc:true,title:(p.id?'Edit ':'Add ')+(W||G?'delivery':'purchase'),save:W||G?'Save delivery':'Save purchase',
+   fields:[{k:'date',t:'date',l:W?'Delivery date':'Purchase date'}].concat(G?[{k:'deliveryDate',t:'date',l:'Delivery Date',opt:1}]:[],
+    [{k:'qty',t:'qty',l:W?'Quantity':'Number of '+ups,step:1,sfx:ups,req:1},
+    {k:'unit',t:'money',l:G?'Cylinder price':'Price per '+un,hint:G?undefined:v=>unitHint(c.id,v)},{k:'total',t:'calc'},
+    {k:'setDef',t:'switch',l:'Use this price as my default from now on',opt:1,show:v=>!W&&!G&&!!S.prices[c.id]&&parseMoney(v.unit)>0&&parseMoney(v.unit)!==S.prices[c.id].cur},
+    {k:'notes',t:'area',l:W?'Notes':'Supplier or notes',opt:1}]),
+   init:()=>{const d=defDate(p),pr=G?null:priceOn(c.id,d);return{date:d,deliveryDate:G?d:'',qty:'1',unit:pr!=null?rs(pr):'',notes:'',setDef:false,total:''};},
+   fill:r=>({date:r.date,deliveryDate:r.deliveryDate||'',qty:qtyStr(r.qtyM),unit:rs(r.unitP),notes:r.notes||'',setDef:false,total:rs(r.amountP)}),
+   build:v=>{const q=parseQty(v.qty),u=parseMoney(v.unit),r={cat:c.id,date:v.date,qtyM:q,unitP:u,amountP:mul(q,u),notes:v.notes.trim()};if(G)r.deliveryDate=v.deliveryDate;return r;},
+   after:(rec,v)=>{if(!W&&!G&&(!S.prices[c.id]||v.setDef))setPrice(c.id,rec.unitP,'all');},
+   unitDate:!G};
 }
 export const payHint=v=>v.paid?'Shown as Paid and counted in this month’s spending.':'Shown as Due. It is not counted in spending until you check Paid.';
 export const agHint=v=>validDate(v.agEnd)?'Time left: '+leftInfo(v.agEnd).t+'.':'';
