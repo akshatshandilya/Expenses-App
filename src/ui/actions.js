@@ -6,6 +6,7 @@ import {$,esc,uid} from '../core/util.js';
 import {DLG,S,UI,blank,catOf,houseOf,persist,replaceState} from '../data/state.js';
 import {applyLockEffects} from '../native/lock.js';
 import {platform} from '../native/platform.js';
+import {requestNotificationPermission,syncBillNotifications} from '../native/notifications.js';
 import {miniCal} from './clock.js';
 import {chipOf,recList} from './components.js';
 import {editParams,entryFor,openEntry,refreshCabRoutes,toggleRentHouse} from './entry.js';
@@ -214,6 +215,8 @@ Object.assign(A,{
  },
  theme:el=>{S.theme=el.dataset.v;applyTheme();persist();draw(true);},
  lockSetup:()=>go('lockSetup'),
+ reminderSettings:()=>sheet('<h2>Bill reminders</h2><p class="sub">Bill reminders are scheduled on this device and work offline. Allow notifications in Android to receive them. Android may adjust delivery time to save battery.</p><div class="row2"><button class="btn" data-act="closeL">Close</button><button class="btn pri" data-act="enableBillReminders">Enable notifications</button></div>'),
+ enableBillReminders:async()=>{try{if(!await requestNotificationPermission()){toast('Notifications are disabled for Expenses','bad');return;}await syncBillNotifications();closeL();toast('Bill reminders are enabled');}catch(error){toast('Could not enable bill reminders','bad');}},
  privacy:()=>go('privacy'),
  backup:()=>go('backup'),
  lockTO:el=>{S.lock.timeout=+el.dataset.v;persist();draw(true);},

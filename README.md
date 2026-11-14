@@ -34,6 +34,7 @@ To build the APK locally you also need JDK 21 and the Android SDK: `npm run sync
 - **Travel**: Distance, Fuel, Toll. Save a vehicle on an individual journey to reuse it for that journey’s fuel and toll entries. Cost per km is calculated from linked Fuel and Toll expenses and the distance of journeys with those expenses. Log fuel and toll independently from the Travel cards too. Distance is never counted as spending.
 - **Rent**: Choose Rent Paid or Rent Received, then view monthly payment cards by house (and by tenant for received rent). Set a monthly rent amount and due day in Houses; cards start as Payment due and can be marked paid or received. Future months let you log rent in advance. Tenant agreements and monthly rent stay with their receiving-rent house.
 - **Mobile Bill**: Save a recurring bill for each family member with their provider, prepaid or postpaid type, due date and amount. Monthly cards let you mark a bill paid and save its payment date; future months can be logged in advance.
+- **Bill reminders**: For each bill, choose any combination of 3 days before, 1 day before, on the due date, daily while overdue, or a custom day from the Bill reminder dropdown, and set its reminder time (defaults to 10:00 AM). Leave all boxes unchecked for no reminder. Reminders are scheduled locally on Android at the selected time and work offline; custom reminder dates must be before the due date.
 - **Auto and Cabs**: Log Auto-rickshaw or Cab fares against saved routes, or enter a one-off route. Route presets can be renamed, added or removed.
 - **Category cards**: On Home, hold a card to enter multi-select mode; tap other cards or their checkboxes to select more. Use the bottom actions to delete selected category data or delete the categories, with confirmation. Drag a card while holding to reorder and save the category order.
 - **Categories** can be deleted from Settings. Choose any existing category; deleting it also deletes its expense records and, for Travel, its journeys.
@@ -42,7 +43,7 @@ To build the APK locally you also need JDK 21 and the Android SDK: `npm run sync
 
 ## Privacy
 
-No account, ads, analytics, crash reporting or cloud. The app declares no internet permission. Records are AES-256-GCM encrypted with a key kept in the Android Keystore, and excluded from Android backup. Optional app lock uses the phone's own fingerprint/face/screen lock. Full details and limits: `docs/SECURITY.md`.
+No account, ads, analytics, crash reporting or cloud. The app declares no internet permission. Records are AES-256-GCM encrypted with a key kept in the Android Keystore, and excluded from Android backup. Local bill reminders need Android notification permission and work offline. Optional app lock uses the phone's own fingerprint/face/screen lock. Full details and limits: `docs/SECURITY.md`.
 
 ## Layout
 

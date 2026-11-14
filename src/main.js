@@ -3,7 +3,8 @@ import {$} from './core/util.js';
 import {curMonth} from './core/dates.js';
 import {loadState,saveState} from './data/storage.js';
 import {platform} from './native/platform.js';
-import {stack,setStack,draw,back,closeL,sheet,tab,layer} from './ui/nav.js';
+import {syncBillNotifications} from './native/notifications.js';
+import {stack,setStack,draw,back,closeL,sheet,tab,layer,toast} from './ui/nav.js';
 import {applyTheme} from './ui/actions.js';
 import {bindEvents} from './ui/events.js';
 import {tick} from './ui/clock.js';
@@ -27,7 +28,7 @@ export async function boot(){
   else replaceState(blank());
   S.mon=curMonth();
   flags.readOnly=bad;
-  setPersistHook(()=>{if(!flags.readOnly)saveState(S);});
+  setPersistHook(()=>{if(!flags.readOnly){saveState(S);syncBillNotifications().catch(()=>toast('Could not update bill reminders','bad'));}});
   applyTheme();applyLockEffects();
   bindEvents();
   setStack([{n:S.onboarded?'home':'welcome',p:{}}]);
@@ -44,6 +45,7 @@ export async function boot(){
   if(bad)unreadableScreen();
   await playLaunch(first?'cold':'returning',blocks,reduced);
   if(lockOn)unlock();
+  if(!flags.readOnly)syncBillNotifications().catch(()=>toast('Could not update bill reminders','bad'));
   document.documentElement.classList.add('ready');
 }
 boot();

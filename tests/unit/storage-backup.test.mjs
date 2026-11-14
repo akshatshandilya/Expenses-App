@@ -58,8 +58,11 @@ test('backup routes are optional for legacy files but validated when present',()
   assert.match(validateData(data),/fixed Others route/);
 });
 test('backup validation accepts tenant rosters and rejects malformed tenant data',()=>{
-  const data={app:'expenses',v:1,data:Object.assign(blank(),{houses:[{id:'h1',name:'Main house',rentDir:'received',tenants:[{name:'Asha Rao',agStart:'2026-01-01',agEnd:'2026-12-31',rentAmountP:12000000,dueBy:'custom',dueDay:12},{name:'Ben Singh',rentAmountP:7000000,dueBy:'seventh'}]},{id:'h2',name:'Paying house',rentDir:'paid',rentAmountP:1500000,dueBy:'first'}],records:[{id:'r1',cat:'rent',dir:'received',date:'2026-10-01',period:'2026-10',amountP:120000,tenant:'Asha Rao'}]})};
+  const data={app:'expenses',v:1,data:Object.assign(blank(),{houses:[{id:'h1',name:'Main house',rentDir:'received',tenants:[{name:'Asha Rao',agStart:'2026-01-01',agEnd:'2026-12-31',rentAmountP:12000000,dueBy:'custom',dueDay:12,reminder:['1day','custom'],reminderDay:11},{name:'Ben Singh',rentAmountP:7000000,dueBy:'seventh'}]},{id:'h2',name:'Paying house',rentDir:'paid',rentAmountP:1500000,dueBy:'first'}],records:[{id:'r1',cat:'rent',dir:'received',date:'2026-10-01',period:'2026-10',amountP:120000,tenant:'Asha Rao'}]})};
   assert.equal(validateData(data),null);
+  data.data.houses[0].tenants[0].reminderDay=12;
+  assert.match(validateData(data),/payment due day/);
+  data.data.houses[0].tenants[0].reminderDay=11;
   data.data.houses[0].tenants=['Legacy tenant'];
   assert.equal(validateData(data),null);
   data.data.houses[0].tenants=[{name:''}];
@@ -71,8 +74,26 @@ test('backup validation accepts tenant rosters and rejects malformed tenant data
   assert.match(validateData(data),/record in the backup is not valid/);
 });
 test('backup validation accepts recurring mobile bills and rejects invalid profile fields',()=>{
-  const data={app:'expenses',v:1,data:Object.assign(blank(),{mobileBills:[{id:'mb1',name:'Priya',provider:'Jio',plan:'postpaid',dueDay:20,amountP:79900}]})};
+  const data={app:'expenses',v:1,data:Object.assign(blank(),{mobileBills:[{id:'mb1',name:'Priya',provider:'Jio',plan:'postpaid',dueDay:20,reminder:['1day','custom'],reminderDay:18,amountP:79900}]})};
+  assert.equal(validateData(data),null);
+  data.data.mobileBills[0].reminder='custom';
+  assert.equal(validateData(data),null);
+  data.data.mobileBills[0].reminder=['1day','custom'];
+  data.data.mobileBills[0].reminderDay=20;
+  assert.match(validateData(data),/mobile bill in the backup is not valid/);
+  data.data.mobileBills[0].reminderDay=18;
+  data.data.mobileBills[0].reminderTime='24:00';
+  assert.match(validateData(data),/mobile bill in the backup is not valid/);
+  delete data.data.mobileBills[0].reminderTime;
   assert.equal(validateData(data),null);
   data.data.mobileBills[0].dueDay=32;
   assert.match(validateData(data),/mobile bill in the backup is not valid/);
+});
+test('backup validation rejects a custom bill reminder after its due date',()=>{
+  const data={app:'expenses',v:1,data:Object.assign(blank(),{records:[{id:'bill1',cat:'electricity',date:'2026-03-01',period:'2026-03',amountP:120000,status:'due',x:{due:'2026-03-19',reminder:['3days','custom'],reminderDay:20}}]})};
+  assert.match(validateData(data),/bill reminder in the backup is not valid/);
+  data.data.records[0].x.reminderDay=18;
+  assert.equal(validateData(data),null);
+  data.data.records[0].x.reminderTime='25:00';
+  assert.match(validateData(data),/bill reminder in the backup is not valid/);
 });

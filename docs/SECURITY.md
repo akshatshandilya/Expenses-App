@@ -5,6 +5,7 @@
 | Area | What the app does |
 |---|---|
 | Network | No INTERNET permission in the manifest, so Android blocks all network access. No analytics, ads, crash reporting or cloud code. The page has a Content-Security-Policy that allows only its own files. |
+| Notifications | Bill reminders are local and scheduled on-device. Android's notification permission is requested when a reminder is enabled; exact-alarm access is removed so Android may deliver at an inexact time. |
 | Storage | One JSON document, AES-256-GCM encrypted, in two alternating files in the app's private folder. Each file has an authenticated header with a write counter. A crash mid-write cannot destroy the last good copy. No SQL is used, so there is no SQL injection surface. |
 | Keys | A random 256-bit key is made on first run and stored through the Android Keystore (`@aparajita/capacitor-secure-storage`). No keys or passwords are in the source. |
 | App lock | Phone biometric or screen lock (`@aparajita/capacitor-biometric-auth`), no PIN of its own. Auto-lock timeout from Settings. Locked state empties the screen content. Turning lock on or off needs the phone's confirmation. |
@@ -17,8 +18,8 @@
 
 ## Verification actually performed (in the build sandbox)
 
-- `npm test`: 13 unit tests passed (money parsing and rounding, month/year/leap-year logic, monthly totals, distance excluded, price history, CSV safety, encrypted storage round trip, slot fallback, tamper detection, backup round trip, wrong passphrase, malformed backups).
-- `npm run audit:project`: all static checks passed (no INTERNET permission in the source manifest, no network APIs or URLs or console logging in source, no browser storage, no eval, no analytics packages, CSP present).
+- `npm test`: Unit tests passed for money, dates, custom reminder validation, monthly totals, price history, CSV safety and encrypted storage/backup behavior.
+- `npm run audit:project`: Static checks cover no INTERNET permission, no exact-alarm access, network APIs or URLs, console logging, browser storage, eval or analytics packages, and the presence of a CSP.
 - `npm audit --omit=dev`: 0 known vulnerabilities at build time. Dependencies are exact-pinned in `package-lock.json`.
 - Browser engine checks (headless Chromium, native calls replaced by in-memory fakes): launch animation timing, lock and auto-lock, the full Water Bottles walk-through (60 -> 3 x 60 = 180 -> change to 65 -> old record keeps 60), and a screen-by-screen comparison against the approved prototype: 84 steps, 1 intended difference (the removed "Prototype notes" card). Many form steps in that comparison did not find their buttons in either page, so coverage of forms by that comparison is partial.
 

@@ -1,11 +1,13 @@
 /* @auto-imports */
 import {addMonths,curMonth,monLabel,today,validDate} from '../core/dates.js';
+import {DEFAULT_REMINDER_TIME,normalizeReminderModes,reminderError,reminderTimeOrDefault} from '../core/reminders.js';
 import {MAX_MONEY,parseMoney,rs} from '../core/money.js';
 import {recMonth} from '../core/rules.js';
 import {$,esc,uid} from '../core/util.js';
 import {S,UI,catOf,houseOf,houseRentDir,tenantProfiles,persist} from '../data/state.js';
-import {tenantOptions,tenantPicker} from './components.js';
+import {reminderChecks,tenantOptions,tenantPicker,updateReminderSelect} from './components.js';
 import {openEntry} from './entry.js';
+import {requestNotificationPermission} from '../native/notifications.js';
 import {ic} from './icons.js';
 import {closeL,draw,sheet,toast} from './nav.js';
 import {A} from './registry.js';
@@ -55,6 +57,10 @@ export function qaHtml(){
       (QA.addHouse?'<div class="rent-house-new"><div class="fld"><label for="qaHouseName">House name</label><input id="qaHouseName" type="text" maxlength="80" autocomplete="off" data-qa="houseName" value="'+esc(QA.houseName)+'" placeholder="e.g. Main home"><p class="err" id="qaHouseErr" role="alert"></p></div><div class="fld"><label for="qaHouseAddr">Address or area <small>optional</small></label><input id="qaHouseAddr" type="text" maxlength="80" autocomplete="off" data-qa="houseAddr" value="'+esc(QA.houseAddr)+'" placeholder="e.g. Flat 4B"></div><div class="fld"><label for="qaHouseMeter">Consumer or meter number <small>optional</small></label><input id="qaHouseMeter" type="text" maxlength="80" autocomplete="off" data-qa="houseMeter" value="'+esc(QA.houseMeter)+'"></div><div class="fld"><div class="lb">Rent type</div><div class="rgrp"><label class="radio"><input type="radio" name="qaHouseDir" data-qa="houseDir" value="paid"'+(QA.houseDir==='paid'?' checked':'')+'><span><b>Paying</b><span>Rent paid to a landlord</span></span></label><label class="radio"><input type="radio" name="qaHouseDir" data-qa="houseDir" value="received"'+(QA.houseDir==='received'?' checked':'')+'><span><b>Receiving</b><span>Rent collected from a tenant</span></span></label></div></div>'+(QA.houseDir==='received'?'<div class="fld"><div class="lb">Tenant details</div>'+quickTenantRows(QA.newTenants||[emptyTenant()])+'<button type="button" class="btn soft block" data-act="qaTenantAdd">'+ic('plus',18)+'Add another tenant</button><p class="err" id="qaTenantErr" role="alert"></p></div>':'')+'</div>':'')+'<p class="err" id="qaErrH" role="alert"></p></div>':'')+
    (rent&&QA.dir==='received'?'<div class="fld"><label for="qaTenant">Tenant</label>'+tenantPicker(QA.tenant,QA.addHouse?QA.newTenants||[]:tenantProfiles(houseOf(QA.houseId)),'qaTenant','qaTenantPicker')+'<p class="hint">Choose a tenant registered to this house.</p>'+(!QA.addHouse&&!tenantProfiles(houseOf(QA.houseId)).length?'<button type="button" class="link" data-act="qaManageTenants">Add tenant details in house settings</button>':'')+'<p class="err" id="qaErrTenant" role="alert"></p></div>':'')+
    (rent?'<div class="fld"><label for="qaDate">'+(QA.dir==='paid'?'Date paid':'Date received')+'</label><input id="qaDate" type="date" min="2000-01-01" max="2100-12-31" data-qa="date" value="'+esc(QA.date)+'"><p class="err" id="qaErrDate" role="alert"></p></div>':'')+
+   (el?'<div class="fld"><label for="qaDueDate">Due date <small>optional</small></label><input id="qaDueDate" type="date" min="2000-01-01" max="2100-12-31" data-qa="dueDate" value="'+esc(QA.dueDate||'')+'"><p class="err" id="qaErrDueDate" role="alert"></p></div>'+
+      '<div class="fld"><div class="lb">Bill reminder</div>'+reminderChecks('qaReminder',QA.reminder,'data-qa="reminder"')+'<p class="hint">Select any reminders. Leave all unchecked for none.</p><p class="err" id="qaErrReminder" role="alert"></p></div>'+
+      '<div id="qaReminderDayField" class="fld"'+(normalizeReminderModes(QA.reminder).includes('custom')?'':' hidden')+'><label for="qaReminderDay">Reminder day of month</label><input id="qaReminderDay" type="number" min="1" max="31" inputmode="numeric" data-qa="reminderDay" value="'+esc(QA.reminderDay||'')+'" placeholder="e.g. 18"><p class="err" id="qaErrReminderDay" role="alert"></p></div>'+
+      '<div id="qaReminderTimeField" class="fld"'+(normalizeReminderModes(QA.reminder).length?'':' hidden')+'><label for="qaReminderTime">Reminder time</label><input id="qaReminderTime" type="time" step="60" data-qa="reminderTime" value="'+esc(reminderTimeOrDefault(QA.reminderTime))+'"><p class="err" id="qaErrReminderTime" role="alert"></p></div>':'')+
    '<div class="fld" style="margin-bottom:8px"><label for="qaAmt">Amount'+(QA.touched||!QA.amount?'':'<small>from your last log</small>')+'</label><div class="pre"><span>₹</span><input id="qaAmt" inputmode="decimal" autocomplete="off" data-qa="amount" value="'+esc(QA.amount)+'" placeholder="0"></div><p class="err" id="qaErrA" role="alert"></p></div>'+
    '<button type="button" class="paidbtn'+(QA.paid?' on':'')+'" role="switch" aria-checked="'+QA.paid+'" data-act="qaPaid"><span class="bx">'+ic('check',20)+'</span><span><b>'+(rent&&QA.dir==='received'?'Received':'Paid')+'</b><small>'+(QA.paid?(rent&&QA.dir==='received'?'Marked as received. Rent is not counted as spending.':'Marked as paid and counted in spending.'):(rent&&QA.dir==='received'?'Shows as Due until you mark it Received.':'Shows as Due until you tick this.'))+'</small></span></button>'+
    '<div class="warnbox" id="qaWarn"'+(d?'':' hidden')+'>'+(d?esc('A log for '+target+' in '+monLabel(QA.period)+' already exists. You can still save this one.'):'')+'</div>'+
@@ -65,7 +71,7 @@ export const qaRender=()=>{const r=$('#qaRoot');if(r)r.innerHTML=qaHtml();else i
 export function qaWarn(){const w=$('#qaWarn'),b=$('#qaSave'),d=qaDup(),target=qaName()+(QA.cat==='rent'&&QA.dir==='received'&&QA.tenant?' · '+QA.tenant:'');if(w){w.hidden=!d;w.textContent=d?'A log for '+target+' in '+monLabel(QA.period)+' already exists. You can still save this one.':'';}if(b)b.lastChild.textContent=d?'Save anyway':'Save';}
 export function openQuick(o){
   if(isHouseBill(o.cat)&&!S.houses.length){openEntry({spec:'house',utility:true});return;}
-  QA={cat:o.cat,dir:o.dir||null,period:S.mon,date:S.mon===curMonth()?today():S.mon+'-01',dateTouched:false,tenant:'',newTenants:[emptyTenant()],paid:false,touched:false,saving:false,houseId:'',houseName:'',houseAddr:'',houseMeter:'',houseDir:o.dir||'paid',addHouse:false,party:'',amount:''};
+  QA={cat:o.cat,dir:o.dir||null,period:S.mon,date:S.mon===curMonth()?today():S.mon+'-01',dateTouched:false,dueDate:'',reminder:[],reminderDay:'',reminderTime:DEFAULT_REMINDER_TIME,tenant:'',newTenants:[emptyTenant()],paid:false,touched:false,saving:false,houseId:'',houseName:'',houseAddr:'',houseMeter:'',houseDir:o.dir||'paid',addHouse:false,party:'',amount:''};
   if(isHouseBill(o.cat)){
     const missing=S.houses.find(h=>!S.records.some(r=>r.cat===o.cat&&r.houseId===h.id&&recMonth(r)===QA.period));
     const lr=lastOf(r=>r.cat===o.cat&&houseOf(r.houseId));
@@ -96,13 +102,18 @@ Object.assign(A,{
  qaTenantPick:el=>{if(!QA)return;QA.tenant=el.dataset.value||'';const t=(QA.addHouse?QA.newTenants:tenantProfiles(houseOf(QA.houseId))).find(x=>x.name===QA.tenant);if(!QA.touched)QA.amount=t?(t.rentAmountP==null?(t.rentAmount||''):rs(t.rentAmountP)):qaGuess();qaRender();},
  qaPaid:()=>{QA.paid=!QA.paid;qaRender();},
  qaMore:()=>{const q=QA;closeL();QA=null;
-   const pre={period:q.period,amount:q.amount,paid:q.paid};
+   const pre={period:q.period,amount:q.amount,paid:q.paid,due:q.dueDate,reminder:q.reminder,reminderDay:q.reminderDay,reminderTime:q.reminderTime};
  if(q.cat==='rent'){pre.houseId=q.houseId;pre.tenant=q.tenant;pre.date=q.date;pre.addHouse=q.addHouse;pre.newTenants=q.newTenants;pre.houseDir=q.houseDir;pre.houseName=q.houseName;pre.houseAddr=q.houseAddr;pre.houseMeter=q.houseMeter;openEntry({spec:'rent',dir:q.dir,pre:pre});}
  else{if(isHouseBill(q.cat))pre.houseId=q.houseId;openEntry({spec:'bill',cat:q.cat,pre:pre});}},
- qaSave:()=>{if(!QA||QA.saving)return;
+ qaSave:async()=>{if(!QA||QA.saving)return;
    const m=parseMoney(QA.amount),ea=$('#qaErrA'),eh=$('#qaErrH');ea.textContent='';if(eh)eh.textContent='';const ed=$('#qaErrDate'),et=$('#qaErrTenant');if(ed)ed.textContent='';if(et)et.textContent='';
    if(QA.cat==='rent'&&!validDate(QA.date)){if(ed)ed.textContent='Enter a valid date.';return;}
    if(m==null||m<=0||m>MAX_MONEY){ea.textContent='Enter an amount above 0, with up to 2 decimals.';$('#qaAmt').focus();return;}
+   if(isHouseBill(QA.cat)){
+     const dueError=reminderError(QA.dueDate,QA.reminder,QA.reminderDay,QA.reminderTime);
+     if(dueError){const errorEl=dueError==='Choose a due date for the reminder.'?$('#qaErrDueDate'):dueError.includes('reminder day')?$('#qaErrReminderDay'):dueError==='Choose a reminder time.'?$('#qaErrReminderTime'):$('#qaErrReminder');if(errorEl)errorEl.textContent=dueError;return;}
+     if(QA.dueDate&&!validDate(QA.dueDate)){const errorEl=$('#qaErrDueDate');if(errorEl)errorEl.textContent='Enter a valid due date.';return;}
+   }
    if(isHouseBill(QA.cat)&&!houseOf(QA.houseId)){eh.textContent='Choose a house.';return;}
    if(QA.cat==='rent'){
      const hErr=$('#qaHouseErr');
@@ -125,9 +136,14 @@ Object.assign(A,{
      }
    }
    QA.saving=true;
+   if(normalizeReminderModes(QA.reminder).length){
+     try{
+       if(!await requestNotificationPermission()){QA.saving=false;const errorEl=$('#qaErrReminder');if(errorEl)errorEl.textContent='Allow notifications to use bill reminders.';return;}
+     }catch(error){QA.saving=false;toast('Could not check notification permissions','bad');return;}
+   }
    const last=lastOf(qaMatch),lx=(last&&last.x)||{};
    const rec={id:uid(),ts:Date.now(),cat:QA.cat,date:QA.cat==='rent'?QA.date:(QA.period===curMonth()?today():QA.period+'-01'),period:QA.period,amountP:m,status:QA.paid?'paid':'due',notes:'',party:last?(last.party||''):''};
-   if(isHouseBill(QA.cat)){rec.houseId=QA.houseId;rec.x={due:''};}
+   if(isHouseBill(QA.cat)){rec.houseId=QA.houseId;rec.x={due:QA.dueDate||'',reminder:normalizeReminderModes(QA.reminder),reminderDay:normalizeReminderModes(QA.reminder).includes('custom')?Number(QA.reminderDay):null,reminderTime:QA.reminderTime};}
    else if(QA.cat==='rent'){
      const house=QA.addHouse?{id:uid(),name:QA.houseName.trim(),rentDir:QA.houseDir,addr:QA.houseAddr.trim(),meter:QA.houseMeter.trim(),tenants:QA.houseDir==='received'?QA.newTenants.filter(t=>t.name.trim()).map(t=>({name:t.name.trim(),agStart:t.agStart,agEnd:t.agEnd,rentAmountP:parseMoney(t.rentAmount)})):[]}:houseOf(QA.houseId);
      if(QA.addHouse)S.houses.push(house);
@@ -152,6 +168,18 @@ export function onQuickInput(el,eventType){
     if(eventType==='change')qaRender();
     return true;
   }
+  if(el.dataset.qa==='reminder'){
+    if(eventType==='change'){
+      const selected=new Set(normalizeReminderModes(QA.reminder));
+      if(el.checked)selected.add(el.value);else selected.delete(el.value);
+      QA.reminder=[...selected];
+      updateReminderSelect(el.closest('.reminder-select'),QA.reminder);
+      const dayField=$('#qaReminderDayField');if(dayField)dayField.hidden=!QA.reminder.includes('custom');
+      const timeField=$('#qaReminderTimeField');if(timeField)timeField.hidden=!QA.reminder.length;
+      const error=$('#qaErrReminder');if(error)error.textContent='';
+    }
+    return true;
+  }
   QA[el.dataset.qa]=el.value;
   if(el.dataset.qa==='amount')QA.touched=true;
   else if(el.dataset.qa==='date')QA.dateTouched=true;
@@ -167,6 +195,7 @@ export function onQuickInput(el,eventType){
   else if(el.dataset.qa==='houseName'&&!QA.touched){QA.amount=qaGuess();const a=$('#qaAmt');if(a)a.value=QA.amount;}
   const ea=$('#qaErrA');if(ea)ea.textContent='';
   if(el.dataset.qa==='date'){const e=$('#qaErrDate');if(e)e.textContent='';}
+  if(el.dataset.qa==='reminderTime'){const e=$('#qaErrReminderTime');if(e)e.textContent='';}
   if(el.dataset.qa==='tenant'){const e=$('#qaErrTenant');if(e)e.textContent='';qaWarn();return true;}
   qaWarn();return true;
 }

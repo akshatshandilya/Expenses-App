@@ -1,6 +1,7 @@
 /* @auto-imports */
 import {fmtDate,fmtStamp,monLabel,monShort} from '../core/dates.js';
 import {fmt,qtyStr} from '../core/money.js';
+import {normalizeReminderModes,REMINDER_OPTIONS} from '../core/reminders.js';
 import {isIncome} from '../core/rules.js';
 import {esc} from '../core/util.js';
 import {S,catOf,houseOf} from '../data/state.js';
@@ -11,6 +12,19 @@ export const hd=(t,extra)=>'<header class="hd"><button class="ib" data-act="back
 export function tenantPicker(value,profiles,id,act){
   const selected=profiles.find(t=>t.name===value);
   return '<button type="button" class="tenant-picker" id="'+esc(id)+'" data-act="'+act+'" aria-haspopup="dialog"><span>'+esc(selected?selected.name:'Choose a tenant')+'</span>'+ic('chevR',18)+'</button>';
+}
+export function reminderChecks(id,selected,attributes){
+  const modes=normalizeReminderModes(selected);
+  const summary=modes.length===1?REMINDER_OPTIONS.find(([mode])=>mode===modes[0])[1]:modes.length?modes.length+' reminders selected':'Select reminders';
+  return '<div class="reminder-select"><button type="button" class="reminder-select-trigger" data-act="toggleReminderSelect" aria-haspopup="true" aria-expanded="false" aria-controls="'+esc(id)+'_menu"><span data-reminder-label>'+esc(summary)+'</span>'+ic('chevR',18)+'</button><div class="reminder-select-menu" id="'+esc(id)+'_menu" hidden><div class="reminder-options" role="group" aria-label="Bill reminder options">'+REMINDER_OPTIONS.map(([mode,label])=>{
+    const optionId=id+'_'+mode;
+    return '<label class="radio reminder-option" for="'+esc(optionId)+'"><input type="checkbox" id="'+esc(optionId)+'" '+attributes+' value="'+mode+'"'+(modes.includes(mode)?' checked':'')+'><span><b>'+esc(label)+'</b></span></label>';
+  }).join('')+'</div></div></div>';
+}
+export function updateReminderSelect(root,selected){
+  if(!root)return;
+  const modes=normalizeReminderModes(selected),label=root.querySelector('[data-reminder-label]');
+  if(label)label.textContent=modes.length===1?REMINDER_OPTIONS.find(([mode])=>mode===modes[0])[1]:modes.length?modes.length+' reminders selected':'Select reminders';
 }
 export function tenantOptions(profiles,selected,act){
   const options=[{name:'',label:'Choose a tenant'}].concat(profiles.filter(t=>t.name.trim()).map(t=>({name:t.name,label:t.name})));

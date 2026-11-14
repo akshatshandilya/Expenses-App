@@ -5,6 +5,7 @@ import {addMonths,monthDate,validDate,validMonth,pad} from '../../src/core/dates
 import {S,replaceState,blank,migrateState,tenantProfiles,paymentDueLabel} from '../../src/data/state.js';
 import {spent,catSpent,priceOn,setPrice,sum,travelCostPerKm} from '../../src/core/rules.js';
 import {buildCsv,csvCell} from '../../src/core/csv.js';
+import {addDays,monthlyReminderError,reminderError,reminderNotificationTime,reminderOccurrencesForDueDate,validReminderTime} from '../../src/core/reminders.js';
 
 test('money parsing is exact and strict',()=>{
   assert.equal(parseMoney('60'),6000);assert.equal(parseMoney('62.5'),6250);assert.equal(parseMoney('1,050'),105000);
@@ -25,6 +26,39 @@ test('dates: month and year transitions, leap years',()=>{
   assert.equal(validDate('2028-02-29'),true);assert.equal(validDate('2026-02-29'),false);assert.equal(validDate('2100-02-29'),false);assert.equal(validDate('2000-02-29'),true);
   assert.equal(validDate('2026-04-31'),false);assert.equal(validMonth('2026-13'),false);assert.equal(validMonth('2026-12'),true);
   assert.equal(monthDate('2026-02',31),'2026-02-28');assert.equal(monthDate('2028-02',31),'2028-02-29');
+});
+test('bill reminders validate custom dates and calculate lead and overdue dates',()=>{
+  assert.equal(reminderError('2026-03-19','custom','20'),'Set reminder before due date.');
+  assert.equal(reminderError('2026-03-19','custom','18'),'');
+  assert.equal(reminderError('','1day',''),'Choose a due date for the reminder.');
+  assert.equal(reminderError('2026-02-28','custom','30'),'Set reminder before due date.');
+  assert.equal(monthlyReminderError(19,'custom','20'),'Set reminder before due date.');
+  assert.equal(monthlyReminderError(19,'custom','18'),'');
+  assert.equal(reminderError('2026-03-19',['3days','due','custom'],'18'),'');
+  assert.equal(reminderError('2026-03-19',['3days','custom'],'20'),'Set reminder before due date.');
+  assert.equal(reminderError('2026-03-19','due','',''),'Choose a reminder time.');
+  assert.equal(reminderError('2026-03-19','due','','18:45'),'');
+  assert.equal(monthlyReminderError(19,'due','','25:90'),'Choose a reminder time.');
+  assert.equal(validReminderTime('00:00'),true);assert.equal(validReminderTime('23:59'),true);
+  assert.equal(validReminderTime('24:00'),false);assert.equal(validReminderTime('9:00'),false);
+  assert.equal(reminderError('2026-03-19',['due','due'],''),'Choose a reminder timing.');
+  assert.deepEqual(reminderOccurrencesForDueDate('2026-03-19',['3days','due','overdue'],''),[
+    {mode:'3days',date:'2026-03-16',repeatDaily:false},
+    {mode:'due',date:'2026-03-19',repeatDaily:false},
+    {mode:'overdue',date:'2026-03-20',repeatDaily:true}
+  ]);
+  assert.deepEqual(reminderOccurrencesForDueDate('2026-03-19',['1day','custom'],'18'),[
+    {mode:'1day',date:'2026-03-18',repeatDaily:false}
+  ]);
+  assert.deepEqual(reminderOccurrencesForDueDate('2026-03-19',[],'18'),[]);
+  assert.equal(addDays('2026-12-31',1),'2027-01-01');
+});
+test('reminder schedules honor local time and never send a missed one-off reminder late',()=>{
+  assert.deepEqual(reminderNotificationTime('2026-03-19',undefined,false,new Date(2026,2,19,9,59)),new Date(2026,2,19,10,0));
+  assert.deepEqual(reminderNotificationTime('2026-03-19','18:45',false,new Date(2026,2,19,18,44)),new Date(2026,2,19,18,45));
+  assert.equal(reminderNotificationTime('2026-03-19','18:45',false,new Date(2026,2,19,18,46)),null);
+  assert.deepEqual(reminderNotificationTime('2026-03-19','18:45',true,new Date(2026,2,19,18,46)),new Date(2026,2,20,18,45));
+  assert.equal(reminderNotificationTime('2026-03-18','18:45',true,new Date(2026,2,19,18,46)),null);
 });
 const rec=(o)=>Object.assign({id:Math.random()+'',notes:'',ts:1},o);
 test('monthly totals: only real money in the selected month, rent received and unpaid bills excluded, distance never counted',()=>{
@@ -104,9 +138,9 @@ test('legacy state gains Mobile Bill once and does not restore it after deletion
   assert.equal(old.cats.some(c=>c.id==='mobilebill'),false);
 });
 test('tenant profiles normalize legacy names and retain agreement data',()=>{
-  assert.deepEqual(tenantProfiles({tenants:['Asha Rao',{name:'Ben Singh',agStart:'2026-01-01',rentAmountP:700000}]}),[
-    {name:'Asha Rao',agStart:'',agEnd:'',rentAmountP:null,dueBy:'first',dueDay:null},
-    {name:'Ben Singh',agStart:'2026-01-01',agEnd:'',rentAmountP:700000,dueBy:'first',dueDay:null}
+  assert.deepEqual(tenantProfiles({tenants:['Asha Rao',{name:'Ben Singh',agStart:'2026-01-01',rentAmountP:700000,reminder:'due'}]}),[
+    {name:'Asha Rao',agStart:'',agEnd:'',rentAmountP:null,dueBy:'first',dueDay:null,reminder:[],reminderDay:null,reminderTime:'10:00'},
+    {name:'Ben Singh',agStart:'2026-01-01',agEnd:'',rentAmountP:700000,dueBy:'first',dueDay:null,reminder:['due'],reminderDay:null,reminderTime:'10:00'}
   ]);
   assert.equal(paymentDueLabel({dueBy:'first'}),'1st of every month');
   assert.equal(paymentDueLabel({dueBy:'seventh'}),'7th of every month');

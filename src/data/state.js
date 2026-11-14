@@ -1,5 +1,6 @@
 /* @auto-imports */
 import {curMonth} from '../core/dates.js';
+import {normalizeReminderModes,reminderTimeOrDefault} from '../core/reminders.js';
 import {next} from './storage.js';
 /* @end-imports */
 export function defaultCats(){return[
@@ -46,7 +47,7 @@ export function tenantProfiles(house){
   if(!Array.isArray(house&&house.tenants))return [];
   return house.tenants.map(t=>typeof t==='string'?{name:t,agStart:'',agEnd:'',rentAmountP:null}:t)
     .filter(t=>t&&typeof t.name==='string'&&t.name.trim())
-    .map(t=>({name:t.name,agStart:t.agStart||'',agEnd:t.agEnd||'',rentAmountP:Number.isInteger(t.rentAmountP)?t.rentAmountP:null,dueBy:['first','seventh','custom'].includes(t.dueBy)?t.dueBy:'first',dueDay:Number.isInteger(t.dueDay)&&t.dueDay>=1&&t.dueDay<=31?t.dueDay:null}));
+    .map(t=>({name:t.name,agStart:t.agStart||'',agEnd:t.agEnd||'',rentAmountP:Number.isInteger(t.rentAmountP)?t.rentAmountP:null,dueBy:['first','seventh','custom'].includes(t.dueBy)?t.dueBy:'first',dueDay:Number.isInteger(t.dueDay)&&t.dueDay>=1&&t.dueDay<=31?t.dueDay:null,reminder:normalizeReminderModes(t.reminder),reminderDay:Number.isInteger(t.reminderDay)&&t.reminderDay>=1&&t.reminderDay<=31?t.reminderDay:null,reminderTime:reminderTimeOrDefault(t.reminderTime)}));
 }
 export function paymentDueLabel(item){
   const mode=['first','seventh','custom'].includes(item&&item.dueBy)?item.dueBy:'first';

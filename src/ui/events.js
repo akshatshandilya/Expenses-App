@@ -10,6 +10,18 @@ import {toggleLock} from '../native/lock.js';
 import {onBackupFile} from './data-actions.js';
 import {DLG} from '../data/state.js';
 
+function closeReminderDropdowns(restoreFocus){
+  const menus=Array.from(document.querySelectorAll('.reminder-select-menu:not([hidden])'));
+  let focusTarget=null;
+  menus.forEach(menu=>{
+    menu.hidden=true;
+    const trigger=menu.parentElement.querySelector('.reminder-select-trigger');
+    if(trigger){trigger.setAttribute('aria-expanded','false');if(!focusTarget)focusTarget=trigger;}
+  });
+  if(restoreFocus&&focusTarget)focusTarget.focus();
+  return menus.length>0;
+}
+
 export function bindEvents(){
   const shell=$('#shell');
   let categoryGesture=null,suppressTileClick=null,suppressClickTimer=0;
@@ -187,5 +199,6 @@ export function bindEvents(){
   }
   shell.addEventListener('input',onInput);
   shell.addEventListener('change',onInput);
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&categoryGesture&&categoryGesture.dragging){cancelCategoryGesture(true);return;}if(e.key==='Escape'&&!layer.hidden)closeL();});
+  document.addEventListener('click',e=>{if(!e.target.closest||!e.target.closest('.reminder-select'))closeReminderDropdowns(false);});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&categoryGesture&&categoryGesture.dragging){cancelCategoryGesture(true);return;}if(e.key==='Escape'&&closeReminderDropdowns(true)){e.preventDefault();return;}if(e.key==='Escape'&&!layer.hidden)closeL();});
 }

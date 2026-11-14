@@ -1,10 +1,12 @@
 /* @auto-imports */
 import {curMonth,fmtDate,leftInfo,monLabel,monShort,monthDate,today,validDate,validMonth} from '../core/dates.js';
+import {DEFAULT_REMINDER_TIME,monthlyReminderError,normalizeReminderModes,REMINDER_OPTIONS,reminderError,reminderTimeOrDefault,validReminderTime} from '../core/reminders.js';
+import {requestNotificationPermission} from '../native/notifications.js';
 import {MAX_MONEY,MAX_QTY,MAX_UNIT,fmt,mul,parseMoney,parseQty,qtyStr,rs} from '../core/money.js';
 import {priceOn,recMonth,setPrice} from '../core/rules.js';
 import {$,$$,esc,uid} from '../core/util.js';
 import {S,UI,catOf,houseOf,houseRentDir,tenantProfiles,persist} from '../data/state.js';
-import {empty,hd,tenantOptions,tenantPicker} from './components.js';
+import {empty,hd,reminderChecks,tenantOptions,tenantPicker,updateReminderSelect} from './components.js';
 import {ic} from './icons.js';
 import {closeL,draw,go,sheet,stack,toast} from './nav.js';
 import {A,V} from './registry.js';
@@ -22,7 +24,7 @@ export function toggleRentHouse(){
   if(!F||F.sp.cat!=='rent')return;
   F.vals.addHouse=!F.vals.addHouse;draw(true);
 }
-const emptyTenant=()=>({name:'',agStart:'',agEnd:'',rentAmount:''});
+const emptyTenant=()=>({name:'',agStart:'',agEnd:'',rentAmount:'',reminder:[],reminderDay:'',reminderTime:DEFAULT_REMINDER_TIME});
 function tenantRowsHtml(tenants,group){
   const rows=tenants.map((t,i)=>'<div class="rent-house-new"><div class="fld"><label for="f_'+group+'_name_'+i+'">Tenant name</label><input id="f_'+group+'_name_'+i+'" type="text" maxlength="80" data-f="tenantProfile" data-tenant-group="'+group+'" data-tenant-index="'+i+'" data-tenant-key="name" value="'+esc(t.name||'')+'" placeholder="Tenant name" autocomplete="off"><p class="err" data-err="tenant_'+group+'_'+i+'" role="alert"></p></div>'+
     '<div class="fld"><label for="f_'+group+'_start_'+i+'">Agreement start date <small>optional</small></label><input id="f_'+group+'_start_'+i+'" type="date" min="2000-01-01" max="2100-12-31" data-f="tenantProfile" data-tenant-group="'+group+'" data-tenant-index="'+i+'" data-tenant-key="agStart" value="'+esc(t.agStart||'')+'"></div>'+
@@ -30,6 +32,9 @@ function tenantRowsHtml(tenants,group){
     '<div class="fld"><label for="f_'+group+'_rent_'+i+'">Monthly rent</label><div class="pre"><span>₹</span><input id="f_'+group+'_rent_'+i+'" inputmode="decimal" data-f="tenantProfile" data-tenant-group="'+group+'" data-tenant-index="'+i+'" data-tenant-key="rentAmount" value="'+esc(t.rentAmount||'')+'" placeholder="0" autocomplete="off"></div></div>'+
     '<div class="fld"><label for="f_'+group+'_dueBy_'+i+'">Payment Due By</label><select class="device-theme" id="f_'+group+'_dueBy_'+i+'" data-f="tenantProfile" data-tenant-group="'+group+'" data-tenant-index="'+i+'" data-tenant-key="dueBy"><option value="first"'+((t.dueBy||'first')==='first'?' selected':'')+'>1st of every month</option><option value="seventh"'+(t.dueBy==='seventh'?' selected':'')+'>7th of every month</option><option value="custom"'+(t.dueBy==='custom'?' selected':'')+'>Custom</option></select></div>'+
     '<div class="fld"'+(t.dueBy==='custom'?'':' hidden')+'><label for="f_'+group+'_dueDay_'+i+'">Day of every month</label><input id="f_'+group+'_dueDay_'+i+'" type="number" min="1" max="31" inputmode="numeric" data-f="tenantProfile" data-tenant-group="'+group+'" data-tenant-index="'+i+'" data-tenant-key="dueDay" value="'+esc(t.dueDay||'')+'" placeholder="e.g. 12"></div>'+
+    '<div class="fld"><div class="lb">Bill reminder</div>'+reminderChecks('f_'+group+'_reminder_'+i,t.reminder,'data-f="tenantProfile" data-tenant-group="'+group+'" data-tenant-index="'+i+'" data-tenant-key="reminder"')+'<p class="hint">Select any reminders. Leave all unchecked for none.</p></div>'+
+    '<div id="reminderDayField_'+group+'_'+i+'" class="fld"'+(normalizeReminderModes(t.reminder).includes('custom')?'':' hidden')+'><label for="f_'+group+'_reminderDay_'+i+'">Reminder day of every month</label><input id="f_'+group+'_reminderDay_'+i+'" type="number" min="1" max="31" inputmode="numeric" data-f="tenantProfile" data-tenant-group="'+group+'" data-tenant-index="'+i+'" data-tenant-key="reminderDay" value="'+esc(t.reminderDay||'')+'" placeholder="e.g. 18"><p class="err" data-err="tenant_'+group+'_'+i+'" role="alert"></p></div>'+
+    '<div id="reminderTimeField_'+group+'_'+i+'" class="fld"'+(normalizeReminderModes(t.reminder).length?'':' hidden')+'><label for="f_'+group+'_reminderTime_'+i+'">Reminder time</label><input id="f_'+group+'_reminderTime_'+i+'" type="time" step="60" data-f="tenantProfile" data-tenant-group="'+group+'" data-tenant-index="'+i+'" data-tenant-key="reminderTime" value="'+esc(reminderTimeOrDefault(t.reminderTime))+'"><p class="err" data-err="tenant_'+group+'_'+i+'" role="alert"></p></div>'+
     (tenants.length>1?'<button type="button" class="link" data-act="tenantRemove" data-group="'+group+'" data-index="'+i+'">Remove tenant</button>':'')+'</div>').join('');
   return rows+'<button type="button" class="btn soft block" data-act="tenantAdd" data-group="'+group+'">'+ic('plus',18)+'Add another tenant</button>';
 }
@@ -38,10 +43,11 @@ export function fieldHtml(f){
   const v=F.vals,k=f.k,id='f_'+k,val=v[k]==null?'':v[k];
   const show=!f.show||f.show(v);
   const ro=(f.t==='date'||f.t==='month')?'<span class="ro" id="ro_'+k+'">'+(f.t==='date'?fmtDate(val):(validMonth(val)?monShort(val):''))+'</span>':'';
-  const lab=f.l&&f.t!=='switch'&&f.t!=='seg'&&f.t!=='radio'&&f.t!=='houseRadio'&&f.t!=='calc'&&f.t!=='tenantRoster'?'<label for="'+id+'">'+f.l+(f.opt?'<small>optional</small>':'')+ro+'</label>':(f.t==='seg'||f.t==='radio'||f.t==='houseRadio'?'<div class="lb">'+f.l+'</div>':'');
+  const lab=f.l&&f.t!=='switch'&&f.t!=='seg'&&f.t!=='radio'&&f.t!=='checks'&&f.t!=='houseRadio'&&f.t!=='calc'&&f.t!=='tenantRoster'?'<label for="'+id+'">'+f.l+(f.opt?'<small>optional</small>':'')+ro+'</label>':(f.t==='seg'||f.t==='radio'||f.t==='checks'||f.t==='houseRadio'?'<div class="lb">'+f.l+'</div>':'');
   let inner='';
   switch(f.t){
     case 'date':inner='<input id="'+id+'" type="date" data-f="'+k+'" value="'+esc(val)+'" min="2000-01-01" max="2100-12-31">';break;
+    case 'time':inner='<input id="'+id+'" type="time" step="60" data-f="'+k+'" value="'+esc(val)+'">';break;
     case 'month':inner='<input id="'+id+'" type="month" data-f="'+k+'" value="'+esc(val)+'" min="2000-01" max="2100-12">';break;
     case 'text':inner='<input id="'+id+'" type="text" data-f="'+k+'" value="'+esc(val)+'" maxlength="80" autocomplete="off" placeholder="'+esc(f.ph||'')+'">';break;
     case 'number':inner='<input id="'+id+'" type="number" min="'+(f.min||'')+'" max="'+(f.max||'')+'" inputmode="numeric" data-f="'+k+'" value="'+esc(val)+'" placeholder="'+esc(f.ph||'')+'">';break;
@@ -58,6 +64,7 @@ export function fieldHtml(f){
       (v.addHouse?'<div class="rent-house-new"><div class="fld"><label for="f_houseName">House name</label><input id="f_houseName" type="text" data-f="houseName" maxlength="80" value="'+esc(v.houseName||'')+'" placeholder="e.g. Main home" autocomplete="off"><p class="err" data-err="houseName" role="alert"></p></div><div class="fld"><label for="f_houseAddr">Address or area <small>optional</small></label><input id="f_houseAddr" type="text" data-f="houseAddr" maxlength="80" value="'+esc(v.houseAddr||'')+'" placeholder="e.g. Flat 4B" autocomplete="off"></div><div class="fld"><label for="f_houseMeter">Consumer or meter number <small>optional</small></label><input id="f_houseMeter" type="text" data-f="houseMeter" maxlength="80" value="'+esc(v.houseMeter||'')+'" autocomplete="off"></div><div class="fld"><div class="lb">Rent type</div><div class="rgrp"><label class="radio"><input type="radio" name="f_houseDir" data-f="houseDir" value="paid"'+((v.houseDir||'paid')==='paid'?' checked':'')+'><span><b>Paying</b><span>Rent paid to a landlord</span></span></label><label class="radio"><input type="radio" name="f_houseDir" data-f="houseDir" value="received"'+(v.houseDir==='received'?' checked':'')+'><span><b>Receiving</b><span>Rent collected from a tenant</span></span></label></div></div>'+(v.houseDir==='paid'?'<div class="fld"><label for="f_houseRentAmount">Monthly rent</label><div class="pre"><span>₹</span><input id="f_houseRentAmount" inputmode="decimal" data-f="houseRentAmount" value="'+esc(v.houseRentAmount||'')+'" placeholder="0"></div><p class="err" data-err="houseRentAmount" role="alert"></p></div><div class="fld"><label for="f_houseDueBy">Payment Due By</label><select class="device-theme" id="f_houseDueBy" data-f="houseDueBy"><option value="first"'+((v.houseDueBy||'first')==='first'?' selected':'')+'>1st of every month</option><option value="seventh"'+(v.houseDueBy==='seventh'?' selected':'')+'>7th of every month</option><option value="custom"'+(v.houseDueBy==='custom'?' selected':'')+'>Custom</option></select></div>'+(v.houseDueBy==='custom'?'<div class="fld"><label for="f_houseDueDay">Day of every month</label><input id="f_houseDueDay" type="number" min="1" max="31" data-f="houseDueDay" value="'+esc(v.houseDueDay||'')+'" placeholder="e.g. 12"><p class="err" data-err="houseDueDay" role="alert"></p></div>':''):'')+(v.houseDir==='received'?'<div class="fld"><div class="lb">Tenant details</div>'+tenantRowsHtml(v.newTenants||[emptyTenant()],'rent-new')+'<p class="err" data-err="newTenants" role="alert"></p></div>':'')+'</div>':'');break;
     case 'seg':inner='<div class="seg'+(f.wrap?' wrap':'')+'" role="radiogroup" aria-label="'+esc(f.l)+'">'+f.opts.map(o=>'<button type="button" role="radio" aria-checked="'+(val===o[0])+'" class="'+(val===o[0]?'on':'')+'" data-act="seg" data-k="'+k+'" data-v="'+esc(o[0])+'">'+esc(o[1])+'</button>').join('')+'</div>';break;
     case 'radio':inner='<div class="rgrp">'+f.opts.map(o=>'<label class="radio"><input type="radio" name="'+id+'" data-f="'+k+'" value="'+esc(o[0])+'"'+(val===o[0]?' checked':'')+'><span><b>'+esc(o[1])+'</b><span>'+esc(o[2]||'')+'</span></span></label>').join('')+'</div>';break;
+    case 'checks':inner=reminderChecks(id,val,'data-f="'+k+'"');break;
     case 'switch':inner='<label class="sw"><input type="checkbox" role="switch" data-f="'+k+'"'+(val?' checked':'')+'><span class="trk"></span><span>'+f.l+'</span></label>';break;
     case 'info':inner='<div class="sub">'+esc(typeof f.value==='function'?f.value(v):f.value||'')+'</div>';break;
     case 'calc':inner='<div class="calc"><div class="formula" id="formula" aria-live="polite"></div><div class="pre"><span>₹</span><input id="f_total" inputmode="decimal" data-f="total" value="'+esc(val)+'" aria-label="Total amount" readonly></div><div style="display:flex;justify-content:space-between;align-items:center"><span class="sub" id="calcNote"></span><button type="button" class="link" id="editLink" data-act="editTotal" hidden></button></div></div>';break;
@@ -144,19 +151,28 @@ export function getSpec(p){
       fill:r=>({date:r.date,from:r.from||'',to:r.to||'',km:qtyStr(r.kmM),vehicle:r.vehicle||'',purpose:r.purpose||''}),
       build:v=>({date:v.date,from:v.from.trim(),to:v.to.trim(),kmM:parseQty(v.km),vehicle:v.vehicle.trim(),purpose:v.purpose.trim()})};
     case 'house':return{cat:'electricity',store:'houses',title:p.id?'Edit house':'Add house',save:'Save house',
-      fields:[{k:'name',t:'text',l:'House name',ph:'e.g. Main home, Flat 4B',req:1},{k:'addr',t:'text',l:'Address or area',opt:1},{k:'meter',t:'text',l:'Consumer or meter number',opt:1}].concat(p.utility?[]:[{k:'rentDir',t:'radio',l:'Rent type',opts:[['paid','Paying','Rent paid to a landlord'],['received','Receiving','Rent collected from a tenant']]},{k:'rentAmount',t:'money',l:'Monthly rent',req:1,show:v=>v.rentDir==='paid'},{k:'dueBy',t:'select',l:'Payment Due By',opts:[['first','1st of every month'],['seventh','7th of every month'],['custom','Custom']],show:v=>v.rentDir==='paid'},{k:'dueDay',t:'number',min:1,max:31,l:'Day of every month',ph:'e.g. 12',show:v=>v.rentDir==='paid'&&v.dueBy==='custom'},{k:'tenants',t:'tenantRoster',l:'Tenant details',show:v=>v.rentDir==='received',hint:()=> 'Add agreement dates, monthly rent and the payment due day for each tenant.'}]),
-      init:()=>({name:'',rentDir:'paid',addr:'',meter:'',rentAmount:'',dueBy:'first',dueDay:'',tenants:[emptyTenant()]}),
-      fill:r=>({name:r.name,rentDir:houseRentDir(r),addr:r.addr||'',meter:r.meter||'',rentAmount:Number.isInteger(r.rentAmountP)?rs(r.rentAmountP):'',dueBy:['first','seventh','custom'].includes(r.dueBy)?r.dueBy:'first',dueDay:r.dueDay||'',tenants:tenantProfiles(r).map(t=>({name:t.name,agStart:t.agStart,agEnd:t.agEnd,rentAmount:t.rentAmountP==null?'':rs(t.rentAmountP),dueBy:t.dueBy,dueDay:t.dueDay||''})).concat(tenantProfiles(r).length?[]:[emptyTenant()])}),
-      build:v=>({name:v.name.trim(),rentDir:v.rentDir,addr:v.addr.trim(),meter:v.meter.trim(),rentAmountP:v.rentDir==='paid'?parseMoney(v.rentAmount):null,dueBy:v.rentDir==='paid'?v.dueBy:'first',dueDay:v.rentDir==='paid'&&v.dueBy==='custom'?Number(v.dueDay):null,tenants:Array.isArray(v.tenants)?v.tenants.filter(t=>t.name.trim()).map(t=>({name:t.name.trim(),agStart:t.agStart,agEnd:t.agEnd,rentAmountP:parseMoney(t.rentAmount),dueBy:t.dueBy||'first',dueDay:t.dueBy==='custom'?Number(t.dueDay):null})):[]}),
+      fields:[{k:'name',t:'text',l:'House name',ph:'e.g. Main home, Flat 4B',req:1},{k:'addr',t:'text',l:'Address or area',opt:1},{k:'meter',t:'text',l:'Consumer or meter number',opt:1}].concat(p.utility?[]:[{k:'rentDir',t:'radio',l:'Rent type',opts:[['paid','Paying','Rent paid to a landlord'],['received','Receiving','Rent collected from a tenant']]},{k:'rentAmount',t:'money',l:'Monthly rent',req:1,show:v=>v.rentDir==='paid'},{k:'dueBy',t:'select',l:'Payment Due By',opts:[['first','1st of every month'],['seventh','7th of every month'],['custom','Custom']],show:v=>v.rentDir==='paid'},      {k:'dueDay',t:'number',min:1,max:31,l:'Day of every month',ph:'e.g. 12',show:v=>v.rentDir==='paid'&&v.dueBy==='custom'},
+      {k:'reminder',t:'checks',l:'Bill reminder',opts:REMINDER_OPTIONS,hint:()=> 'Select any reminders. Leave all unchecked for none.',show:v=>v.rentDir==='paid'},
+      {k:'reminderDay',t:'number',min:1,max:31,l:'Reminder day of every month',ph:'e.g. 18',show:v=>v.rentDir==='paid'&&normalizeReminderModes(v.reminder).includes('custom')},
+      {k:'reminderTime',t:'time',l:'Reminder time',show:v=>v.rentDir==='paid'&&normalizeReminderModes(v.reminder).length>0},
+      {k:'tenants',t:'tenantRoster',l:'Tenant details',show:v=>v.rentDir==='received',hint:()=> 'Add agreement dates, monthly rent, due day and reminder preference for each tenant.'}]),
+      init:()=>({name:'',rentDir:'paid',addr:'',meter:'',rentAmount:'',dueBy:'first',dueDay:'',reminder:[],reminderDay:'',reminderTime:DEFAULT_REMINDER_TIME,tenants:[emptyTenant()]}),
+      fill:r=>({name:r.name,rentDir:houseRentDir(r),addr:r.addr||'',meter:r.meter||'',rentAmount:Number.isInteger(r.rentAmountP)?rs(r.rentAmountP):'',dueBy:['first','seventh','custom'].includes(r.dueBy)?r.dueBy:'first',dueDay:r.dueDay||'',reminder:normalizeReminderModes(r.reminder),reminderDay:r.reminderDay||'',reminderTime:reminderTimeOrDefault(r.reminderTime),tenants:tenantProfiles(r).map(t=>({name:t.name,agStart:t.agStart,agEnd:t.agEnd,rentAmount:t.rentAmountP==null?'':rs(t.rentAmountP),dueBy:t.dueBy,dueDay:t.dueDay||'',reminder:t.reminder,reminderDay:t.reminderDay||'',reminderTime:t.reminderTime})).concat(tenantProfiles(r).length?[]:[emptyTenant()])}),
+      build:v=>({name:v.name.trim(),rentDir:v.rentDir,addr:v.addr.trim(),meter:v.meter.trim(),rentAmountP:v.rentDir==='paid'?parseMoney(v.rentAmount):null,dueBy:v.rentDir==='paid'?v.dueBy:'first',dueDay:v.rentDir==='paid'&&v.dueBy==='custom'?Number(v.dueDay):null,reminder:v.rentDir==='paid'?v.reminder:[],reminderDay:v.rentDir==='paid'&&normalizeReminderModes(v.reminder).includes('custom')?Number(v.reminderDay):null,reminderTime:v.rentDir==='paid'?v.reminderTime:DEFAULT_REMINDER_TIME,tenants:Array.isArray(v.tenants)?v.tenants.filter(t=>t.name.trim()).map(t=>({name:t.name.trim(),agStart:t.agStart,agEnd:t.agEnd,rentAmountP:parseMoney(t.rentAmount),dueBy:t.dueBy||'first',dueDay:t.dueBy==='custom'?Number(t.dueDay):null,reminder:normalizeReminderModes(t.reminder),reminderDay:normalizeReminderModes(t.reminder).includes('custom')?Number(t.reminderDay):null,reminderTime:reminderTimeOrDefault(t.reminderTime)})):[]}),
       check:v=>{
         const errors={};
         if(S.houses.some(h=>h.id!==F.id&&h.name.toLowerCase()===v.name.trim().toLowerCase()))errors.name='You already have a house with this name.';
         if(!p.utility&&v.rentDir==='paid'&&v.dueBy==='custom'&&(!/^\d+$/.test(String(v.dueDay||''))||Number(v.dueDay)<1||Number(v.dueDay)>31))errors.dueDay='Enter a day from 1 to 31.';
+        const houseDueDay=v.dueBy==='first'?1:v.dueBy==='seventh'?7:Number(v.dueDay);
+        const houseReminderError=monthlyReminderError(houseDueDay,v.reminder,v.reminderDay,v.reminderTime);
+        if(!p.utility&&v.rentDir==='paid'&&houseReminderError)errors[houseReminderError.includes('reminder day')?'reminderDay':houseReminderError==='Choose a reminder time.'?'reminderTime':'reminder']=houseReminderError;
         const tenants=v.rentDir==='received'?v.tenants.filter(t=>t.name.trim()):[];
         if(tenants.length>100)errors.tenants='A house can have up to 100 tenants.';
         else if(tenants.some(t=>t.name.trim().length>80))errors.tenants='Each tenant name must be 80 characters or fewer.';
         if(tenants.some(t=>t.rentAmount&&(parseMoney(t.rentAmount)==null||parseMoney(t.rentAmount)<=0||parseMoney(t.rentAmount)>MAX_MONEY)))errors.tenants='Enter a valid monthly rent amount for each tenant.';
         if(tenants.some(t=>t.dueBy==='custom'&&(!/^\d+$/.test(String(t.dueDay||''))||Number(t.dueDay)<1||Number(t.dueDay)>31)))errors.tenants='Enter a custom payment due day from 1 to 31 for each tenant.';
+        const tenantReminderError=tenants.map(t=>monthlyReminderError(t.dueBy==='first'?1:t.dueBy==='seventh'?7:Number(t.dueDay),t.reminder,t.reminderDay,t.reminderTime)).find(Boolean);
+        if(tenantReminderError)errors.tenants=tenantReminderError;
         if(v.rentDir==='paid'&&v.rentAmount&&(parseMoney(v.rentAmount)==null||parseMoney(v.rentAmount)<=0||parseMoney(v.rentAmount)>MAX_MONEY))errors.rentAmount='Enter a valid monthly rent amount.';
         if(v.rentDir==='paid'&&v.dueBy==='custom'&&(!/^\d+$/.test(String(v.dueDay||''))||Number(v.dueDay)<1||Number(v.dueDay)>31))errors.dueDay='Enter a day from 1 to 31.';
         if(tenants.some(t=>t.agStart&&!validDate(t.agStart)||t.agEnd&&!validDate(t.agEnd)||t.agStart&&t.agEnd&&t.agEnd<=t.agStart))errors.tenants='Check the tenant agreement dates.';
@@ -168,26 +184,36 @@ export function getSpec(p){
       }};
     case 'bill':return{cat:c.id,title:(p.id?'Edit ':'Add ')+c.name.toLowerCase(),save:'Save bill',
       fields:(c.id==='electricity'||c.id==='waterbill'?[{k:'houseId',t:'hsel',l:'House'}]:[]).concat([{k:'period',t:'month',l:'Billing month'},{k:'date',t:'date',l:'Payment or bill date'},{k:'amount',t:'money',l:'Bill amount'},
-       {k:'party',t:'text',l:c.id==='electricity'?'Provider':'Provider or meter number',opt:1},{k:'due',t:'date',l:'Due date',opt:1},{k:'paid',t:'switch',l:'Paid',hint:payHint},{k:'notes',t:'area',l:'Notes',opt:1}]),
-      init:()=>({houseId:p.houseId||(c.id==='electricity'&&houseOf(UI.eh)?UI.eh:c.id==='waterbill'&&houseOf(UI.wbh)?UI.wbh:(S.houses.length===1?S.houses[0].id:'')),period:S.mon,date:defDate(p),amount:'',party:'',due:'',paid:false,notes:''}),
-      fill:r=>({houseId:r.houseId||'',period:r.period||r.date.slice(0,7),date:r.date,amount:rs(r.amountP),party:r.party||'',due:(r.x&&r.x.due)||'',paid:r.status!=='due',notes:r.notes||''}),
-      build:v=>Object.assign({cat:c.id,date:v.date,period:v.period,amountP:parseMoney(v.amount),party:v.party.trim(),status:v.paid?'paid':'due',notes:v.notes.trim(),x:{due:v.due}},c.id==='electricity'||c.id==='waterbill'?{houseId:v.houseId}:{}),
+       {k:'party',t:'text',l:c.id==='electricity'?'Provider':'Provider or meter number',opt:1},{k:'due',t:'date',l:'Due date',opt:1},
+       {k:'reminder',t:'checks',l:'Bill reminder',opts:REMINDER_OPTIONS,hint:()=> 'Select any reminders. Leave all unchecked for none.'},{k:'reminderDay',t:'number',min:1,max:31,l:'Reminder day of month',ph:'e.g. 18',show:v=>normalizeReminderModes(v.reminder).includes('custom')},
+       {k:'reminderTime',t:'time',l:'Reminder time',show:v=>normalizeReminderModes(v.reminder).length>0},
+       {k:'paid',t:'switch',l:'Paid',hint:payHint},{k:'notes',t:'area',l:'Notes',opt:1}]),
+      init:()=>({houseId:p.houseId||(c.id==='electricity'&&houseOf(UI.eh)?UI.eh:c.id==='waterbill'&&houseOf(UI.wbh)?UI.wbh:(S.houses.length===1?S.houses[0].id:'')),period:p.pre&&p.pre.period||S.mon,date:defDate(p),amount:p.pre&&p.pre.amount||'',party:'',due:p.pre&&p.pre.due||'',reminder:normalizeReminderModes(p.pre&&p.pre.reminder),reminderDay:p.pre&&p.pre.reminderDay||'',reminderTime:reminderTimeOrDefault(p.pre&&p.pre.reminderTime),paid:p.pre&&p.pre.paid===true,notes:''}),
+      fill:r=>({houseId:r.houseId||'',period:r.period||r.date.slice(0,7),date:r.date,amount:rs(r.amountP),party:r.party||'',due:(r.x&&r.x.due)||'',reminder:normalizeReminderModes(r.x&&r.x.reminder),reminderDay:r.x&&r.x.reminderDay||'',reminderTime:reminderTimeOrDefault(r.x&&r.x.reminderTime),paid:r.status!=='due',notes:r.notes||''}),
+      build:v=>Object.assign({cat:c.id,date:v.date,period:v.period,amountP:parseMoney(v.amount),party:v.party.trim(),status:v.paid?'paid':'due',notes:v.notes.trim(),x:{due:v.due,reminder:normalizeReminderModes(v.reminder),reminderDay:normalizeReminderModes(v.reminder).includes('custom')?Number(v.reminderDay):null,reminderTime:v.reminderTime}},c.id==='electricity'||c.id==='waterbill'?{houseId:v.houseId}:{}),
+      check:v=>{const error=reminderError(v.due,v.reminder,v.reminderDay,v.reminderTime);return error?{[error.includes('reminder day')?'reminderDay':error==='Choose a reminder time.'?'reminderTime':'reminder']:error}:{};},
       dup:rec=>{const byHouse=c.id==='electricity'||c.id==='waterbill',o=S.records.find(r=>r.cat===c.id&&r.id!==rec.id&&r.period===rec.period&&(!byHouse||r.houseId===rec.houseId));return o?'A '+c.name.toLowerCase()+(byHouse&&houseOf(rec.houseId)?' for '+houseOf(rec.houseId).name:'')+' for '+monLabel(rec.period)+' is already saved ('+fmt(o.amountP)+'). You can still save this one.':'';}};
     case 'mobileBill':return{cat:'mobilebill',store:'mobileBills',title:p.id?'Edit mobile bill':'Add mobile bill details',save:'Save',
       fields:[{k:'name',t:'text',l:"Member's name",ph:'e.g. Priya',req:1},{k:'provider',t:'select',l:'Provider',placeholder:'Choose a provider',deviceTheme:true,opts:['Airtel','Jio','Vi','BSNL','MTNL','Other'],req:1},
        {k:'plan',t:'radio',l:'Connection type',opts:[['prepaid','Prepaid'],['postpaid','Postpaid']]},
        {k:'dueBy',t:'select',l:'Bill Due By',deviceTheme:true,placeholder:false,opts:[['1','1st of every month'],['5','5th of every month'],['15','15th of every month'],['custom','Custom']]},
        {k:'dueDay',t:'number',min:1,max:31,l:'Day of every month',ph:'e.g. 20',show:v=>v.dueBy==='custom'},
+       {k:'reminder',t:'checks',l:'Bill reminder',opts:REMINDER_OPTIONS,hint:()=> 'Select any reminders. Leave all unchecked for none.'},
+       {k:'reminderDay',t:'number',min:1,max:31,l:'Reminder day of every month',ph:'e.g. 18',show:v=>normalizeReminderModes(v.reminder).includes('custom')},
+       {k:'reminderTime',t:'time',l:'Reminder time',show:v=>normalizeReminderModes(v.reminder).length>0},
        {k:'amount',t:'money',l:'Bill amount'}],
-      init:()=>({name:'',provider:'',plan:'prepaid',dueBy:'1',dueDay:'',amount:''}),
-      fill:r=>({name:r.name,provider:r.provider,plan:r.plan,dueBy:['1','5','15'].includes(String(r.dueDay))?String(r.dueDay):'custom',dueDay:['1','5','15'].includes(String(r.dueDay))?'':String(r.dueDay),amount:rs(r.amountP)}),
-      build:v=>({name:v.name.trim(),provider:v.provider,plan:v.plan,dueDay:v.dueBy==='custom'?Number(v.dueDay):Number(v.dueBy),amountP:parseMoney(v.amount)}),
+       init:()=>({name:'',provider:'',plan:'prepaid',dueBy:'1',dueDay:'',reminder:[],reminderDay:'',reminderTime:DEFAULT_REMINDER_TIME,amount:''}),
+       fill:r=>({name:r.name,provider:r.provider,plan:r.plan,dueBy:['1','5','15'].includes(String(r.dueDay))?String(r.dueDay):'custom',dueDay:['1','5','15'].includes(String(r.dueDay))?'':String(r.dueDay),reminder:normalizeReminderModes(r.reminder),reminderDay:r.reminderDay||'',reminderTime:reminderTimeOrDefault(r.reminderTime),amount:rs(r.amountP)}),
+       build:v=>({name:v.name.trim(),provider:v.provider,plan:v.plan,dueDay:v.dueBy==='custom'?Number(v.dueDay):Number(v.dueBy),reminder:normalizeReminderModes(v.reminder),reminderDay:normalizeReminderModes(v.reminder).includes('custom')?Number(v.reminderDay):null,reminderTime:v.reminderTime,amountP:parseMoney(v.amount)}),
       check:v=>{
         const errors={};
         if(!['Airtel','Jio','Vi','BSNL','MTNL','Other'].includes(v.provider))errors.provider='Choose a mobile service provider.';
         if(!['prepaid','postpaid'].includes(v.plan))errors.plan='Choose prepaid or postpaid.';
         if(!['1','5','15','custom'].includes(v.dueBy))errors.dueBy='Choose a bill due day.';
         if(v.dueBy==='custom'&&(!/^\d+$/.test(String(v.dueDay||''))||Number(v.dueDay)<1||Number(v.dueDay)>31))errors.dueDay='Enter a day from 1 to 31.';
+        const dueDay=v.dueBy==='custom'?Number(v.dueDay):Number(v.dueBy);
+        const reminderErr=monthlyReminderError(dueDay,v.reminder,v.reminderDay,v.reminderTime);
+        if(reminderErr)errors[reminderErr.includes('reminder day')?'reminderDay':reminderErr==='Choose a reminder time.'?'reminderTime':'reminder']=reminderErr;
         if(!S.mobileBills.some(b=>b.id===F.id&&b.name.trim().toLowerCase()===v.name.trim().toLowerCase())&&S.mobileBills.some(b=>b.name.trim().toLowerCase()===v.name.trim().toLowerCase()))errors.name='A mobile bill is already saved for this family member.';
         return errors;
       }};
@@ -209,14 +235,17 @@ export function getSpec(p){
        {k:'tenantInfo',t:'info',l:'Tenant',value:v=>v.tenant||'',show:v=>!pd&&!!v.tenant},
        {k:'dueBy',t:'select',l:'Payment Due By',opts:[['first','1st of every month'],['seventh','7th of every month'],['custom','Custom']]},
        {k:'dueDay',t:'number',min:1,max:31,l:'Day of every month',ph:'e.g. 12',show:v=>v.dueBy==='custom'},
+       {k:'reminder',t:'checks',l:'Bill reminder',opts:REMINDER_OPTIONS,hint:()=> 'Select any reminders. Leave all unchecked for none.'},
+       {k:'reminderDay',t:'number',min:1,max:31,l:'Reminder day of every month',ph:'e.g. 18',show:v=>normalizeReminderModes(v.reminder).includes('custom')},
+       {k:'reminderTime',t:'time',l:'Reminder time',show:v=>normalizeReminderModes(v.reminder).length>0},
        {k:'method',t:'select',l:'Payment method',opt:1,opts:['Cash','UPI','Bank transfer','Cheque','Other']},
        {k:'agStart',t:'date',l:'Agreement start date',opt:1},{k:'agEnd',t:'date',l:'Agreement end date',opt:1,hint:agHint},{k:'paid',t:'switch',l:pd?'Paid':'Received',hint:v=>v.paid?(pd?'Shown as Paid and counted in this month’s spending.':'Shown as Received. Rent received is income and is not counted as spending.'):(pd?'Shown as Due. It is not counted in spending until you check Paid.':'Shown as Due. Check Received when the tenant has paid.')},{k:'notes',t:'area',l:'Notes',opt:1}],
-      init:()=>({period:period,date:p.pre&&p.pre.date||defDate(p),amount:p.pre&&p.pre.amount|| (initialTenant&&initialTenant.rentAmountP?rs(initialTenant.rentAmountP):initialHouse&&initialHouse.rentAmountP?rs(initialHouse.rentAmountP):lastForEntity?rs(lastForEntity.amountP):''),houseId:houseId,tenant:p.tenant||p.pre&&p.pre.tenant||'',dueBy:dueSource.dueBy||'first',dueDay:dueSource.dueDay||'',addHouse:false,newTenants:[emptyTenant()],houseDir:pd?'paid':'received',houseName:'',houseAddr:'',houseMeter:'',houseRentAmount:'',houseDueBy:'first',houseDueDay:'',method:'',agStart:initialTenant&&initialTenant.agStart||lastAg(pd).s,agEnd:initialTenant&&initialTenant.agEnd||lastAg(pd).e,paid:p.pre&&p.pre.paid===true,notes:''}),
+      init:()=>({period:period,date:p.pre&&p.pre.date||defDate(p),amount:p.pre&&p.pre.amount|| (initialTenant&&initialTenant.rentAmountP?rs(initialTenant.rentAmountP):initialHouse&&initialHouse.rentAmountP?rs(initialHouse.rentAmountP):lastForEntity?rs(lastForEntity.amountP):''),houseId:houseId,tenant:p.tenant||p.pre&&p.pre.tenant||'',dueBy:dueSource.dueBy||'first',dueDay:dueSource.dueDay||'',reminder:normalizeReminderModes(p.pre&&p.pre.reminder!==undefined?p.pre.reminder:dueSource.reminder),reminderDay:p.pre&&p.pre.reminderDay||dueSource.reminderDay||'',reminderTime:reminderTimeOrDefault(p.pre&&p.pre.reminderTime!==undefined?p.pre.reminderTime:dueSource.reminderTime),addHouse:false,newTenants:[emptyTenant()],houseDir:pd?'paid':'received',houseName:'',houseAddr:'',houseMeter:'',houseRentAmount:'',houseDueBy:'first',houseDueDay:'',method:'',agStart:initialTenant&&initialTenant.agStart||lastAg(pd).s,agEnd:initialTenant&&initialTenant.agEnd||lastAg(pd).e,paid:p.pre&&p.pre.paid===true,notes:''}),
       fill:r=>{const h=houseOf(r.houseId),match=h||S.houses.find(x=>x.name.trim().toLowerCase()===(r.party||'').trim().toLowerCase());
         const profile=tenantProfiles(match).find(t=>t.name===r.tenant);
-        return{period:r.period||r.date.slice(0,7),date:r.date,amount:rs(r.amountP),houseId:match?match.id:'',tenant:r.tenant||'',dueBy:r.x&&r.x.dueBy||profile&&profile.dueBy||match&&match.dueBy||'first',dueDay:r.x&&r.x.dueDay||profile&&profile.dueDay||match&&match.dueDay||'',addHouse:!match&&!!r.party,newTenants:[emptyTenant()],houseDir:pd?'paid':'received',houseName:!match?(r.party||''):'',houseAddr:'',houseMeter:'',houseRentAmount:'',houseDueBy:'first',houseDueDay:'',method:(r.x&&r.x.method)||'',agStart:(r.x&&r.x.agStart)||'',agEnd:(r.x&&r.x.agEnd)||'',paid:r.status!=='due',notes:r.notes||''};},
+        return{period:r.period||r.date.slice(0,7),date:r.date,amount:rs(r.amountP),houseId:match?match.id:'',tenant:r.tenant||'',dueBy:r.x&&r.x.dueBy||profile&&profile.dueBy||match&&match.dueBy||'first',dueDay:r.x&&r.x.dueDay||profile&&profile.dueDay||match&&match.dueDay||'',reminder:normalizeReminderModes(r.x&&r.x.reminder!==undefined?r.x.reminder:profile&&profile.reminder!==undefined?profile.reminder:match&&match.reminder),reminderDay:r.x&&r.x.reminderDay||profile&&profile.reminderDay||match&&match.reminderDay||'',reminderTime:reminderTimeOrDefault(r.x&&r.x.reminderTime!==undefined?r.x.reminderTime:profile&&profile.reminderTime!==undefined?profile.reminderTime:match&&match.reminderTime),addHouse:!match&&!!r.party,newTenants:[emptyTenant()],houseDir:pd?'paid':'received',houseName:!match?(r.party||''):'',houseAddr:'',houseMeter:'',houseRentAmount:'',houseDueBy:'first',houseDueDay:'',method:(r.x&&r.x.method)||'',agStart:(r.x&&r.x.agStart)||'',agEnd:(r.x&&r.x.agEnd)||'',paid:r.status!=='due',notes:r.notes||''};},
       build:v=>{const house=houseOf(v.houseId),profiles=v.addHouse?(v.newTenants||[]):tenantProfiles(house),tenant=profiles.find(t=>t.name===v.tenant);
-        return{cat:'rent',dir:pd?'paid':'received',date:v.date||v.period+'-01',period:v.period,amountP:parseMoney(v.amount),houseId:v.houseId,party:v.addHouse?v.houseName.trim():(house?house.name:''),tenant:pd?'':v.tenant.trim(),status:v.paid?'paid':'due',notes:v.notes.trim(),x:{method:v.method,agStart:tenant&&tenant.agStart||v.agStart,agEnd:tenant&&tenant.agEnd||v.agEnd,dueBy:v.dueBy,dueDay:v.dueBy==='custom'?Number(v.dueDay):null}};},
+        return{cat:'rent',dir:pd?'paid':'received',date:v.date||v.period+'-01',period:v.period,amountP:parseMoney(v.amount),houseId:v.houseId,party:v.addHouse?v.houseName.trim():(house?house.name:''),tenant:pd?'':v.tenant.trim(),status:v.paid?'paid':'due',notes:v.notes.trim(),x:{method:v.method,agStart:tenant&&tenant.agStart||v.agStart,agEnd:tenant&&tenant.agEnd||v.agEnd,dueBy:v.dueBy,dueDay:v.dueBy==='custom'?Number(v.dueDay):null,reminder:normalizeReminderModes(v.reminder),reminderDay:normalizeReminderModes(v.reminder).includes('custom')?Number(v.reminderDay):null,reminderTime:v.reminderTime}};},
       check:v=>{
         const errors={};
         if(v.addHouse){
@@ -241,6 +270,9 @@ export function getSpec(p){
         if(v.agStart&&v.agEnd&&v.agEnd<=v.agStart)errors.agEnd='The end date must be after the start date.';
         if(!['first','seventh','custom'].includes(v.dueBy))errors.dueBy='Choose a payment due day.';
         if(v.dueBy==='custom'&&(!/^\d+$/.test(String(v.dueDay||''))||Number(v.dueDay)<1||Number(v.dueDay)>31))errors.dueDay='Enter a day from 1 to 31.';
+        const rentDueDay=v.dueBy==='first'?1:v.dueBy==='seventh'?7:Number(v.dueDay);
+        const reminderErr=monthlyReminderError(rentDueDay,v.reminder,v.reminderDay,v.reminderTime);
+        if(reminderErr)errors[reminderErr.includes('reminder day')?'reminderDay':reminderErr==='Choose a reminder time.'?'reminderTime':'reminder']=reminderErr;
         return errors;
       },
       dup:rec=>{const o=S.records.find(r=>r.cat==='rent'&&r.dir===rec.dir&&r.id!==rec.id&&r.period===rec.period&&(pd||(r.tenant||'').trim().toLowerCase()===(rec.tenant||'').trim().toLowerCase())&&(rec.houseId?r.houseId===rec.houseId||(!r.houseId&&(r.party||'').trim().toLowerCase()===rec.party.toLowerCase()):(r.party||'').trim().toLowerCase()===rec.party.toLowerCase()));return o?'Rent '+(pd?'paid':'received')+' for '+monLabel(rec.period)+(rec.party?' ('+rec.party+(rec.tenant?' · '+rec.tenant:'')+')':'')+' is already logged ('+fmt(o.amountP)+'). You can still save this one.':'';}};}
@@ -285,16 +317,34 @@ export function onField(el){
   if(!F)return;const k=el.dataset.f,v=F.vals;
   if(el.dataset.tenantGroup){
     const rows=el.dataset.tenantGroup==='tenants'?v.tenants:v.newTenants,index=+el.dataset.tenantIndex;
-    if(rows&&rows[index])rows[index][el.dataset.tenantKey]=el.value;
+    if(rows&&rows[index]){
+      if(el.dataset.tenantKey==='reminder'){
+        const selected=new Set(normalizeReminderModes(rows[index].reminder));
+        if(el.checked)selected.add(el.value);else selected.delete(el.value);
+        rows[index].reminder=[...selected];
+        updateReminderSelect(el.closest('.reminder-select'),rows[index].reminder);
+        const dayField=$('#reminderDayField_'+el.dataset.tenantGroup+'_'+index);
+        const timeField=$('#reminderTimeField_'+el.dataset.tenantGroup+'_'+index);
+        if(dayField)dayField.hidden=!normalizeReminderModes(rows[index].reminder).includes('custom');
+        if(timeField)timeField.hidden=!normalizeReminderModes(rows[index].reminder).length;
+      }else rows[index][el.dataset.tenantKey]=el.value;
+    }
     const err=$('[data-err="tenant_'+el.dataset.tenantGroup+'_'+index+'"]');if(err)err.textContent='';
     if(el.dataset.tenantKey==='dueBy'){draw(true);return;}
+    if(el.dataset.tenantKey==='reminder')return;
     if(el.dataset.tenantKey==='name'){
       const picker=$('#f_tenant'),house=houseOf(v.houseId),profiles=v.addHouse?(v.newTenants||[]).filter(t=>t.name.trim()):tenantProfiles(house);
       if(picker)picker.firstElementChild.textContent=profiles.some(t=>t.name===v.tenant)?v.tenant:'Choose a tenant';
     }
     return;
   }
-  v[k]=el.type==='checkbox'?el.checked:el.value;
+  const field=F.sp.fields.find(x=>x.k===k);
+  if(el.type==='checkbox'&&field&&field.t==='checks'){
+    const selected=new Set(normalizeReminderModes(v[k]));
+    if(el.checked)selected.add(el.value);else selected.delete(el.value);
+    v[k]=[...selected];
+    updateReminderSelect(el.closest('.reminder-select'),v[k]);
+  }else v[k]=el.type==='checkbox'?el.checked:el.value;
   if(k==='tenant'&&F.sp.cat==='rent'&&!F.p.id)applyTenant(v.tenant);
   if(k==='total'&&!el.readOnly)F.manual=true;
   if(k==='unit')F.unitTouched=true;
@@ -307,7 +357,7 @@ export function onField(el){
     const house=houseOf(v.houseId),profiles=tenantProfiles(house);
     v.tenant=F.sp.p.tenant&&profiles.some(t=>t.name===F.sp.p.tenant)?F.sp.p.tenant:(profiles.length===1?profiles[0].name:'');
     const source=profiles.find(t=>t.name===v.tenant)||house||{};
-    v.dueBy=source.dueBy||'first';v.dueDay=source.dueDay||'';
+    v.dueBy=source.dueBy||'first';v.dueDay=source.dueDay||'';v.reminder=normalizeReminderModes(source.reminder);v.reminderDay=source.reminderDay||'';v.reminderTime=reminderTimeOrDefault(source.reminderTime);
     const last=house&&S.records.filter(r=>r.cat==='rent'&&r.dir===F.sp.p.dir&&r.houseId===house.id&&(F.sp.p.dir==='paid'||r.tenant===v.tenant)).sort((a,b)=>a.date<b.date?1:-1)[0];
     const amount=source.rentAmountP||last&&last.amountP;
     v.amount=amount?rs(amount):'';
@@ -325,9 +375,10 @@ function applyTenant(name){
   const tenant=profiles.find(t=>t.name===name);
   if(!tenant)return;
   v.amount=v.addHouse?(tenant.rentAmount||''):(tenant.rentAmountP==null?'':rs(tenant.rentAmountP));
-  v.agStart=tenant.agStart||'';v.agEnd=tenant.agEnd||'';
+  v.agStart=tenant.agStart||'';v.agEnd=tenant.agEnd||'';v.dueBy=tenant.dueBy||'first';v.dueDay=tenant.dueDay||'';v.reminder=normalizeReminderModes(tenant.reminder);v.reminderDay=tenant.reminderDay||'';v.reminderTime=reminderTimeOrDefault(tenant.reminderTime);
   const amount=$('#f_amount'),start=$('#f_agStart'),end=$('#f_agEnd');
   if(amount)amount.value=v.amount;if(start)start.value=v.agStart;if(end)end.value=v.agEnd;
+  draw(true);
 }
 export function validate(){
   const sp=F.sp,v=F.vals,e={};
@@ -335,6 +386,7 @@ export function validate(){
     if(f.show&&!f.show(v))return;const val=v[f.k];
     if(f.t==='date'){if(f.opt&&!val)return;if(!validDate(val))e[f.k]='Enter a valid date.';}
     else if(f.t==='month'){if(!validMonth(val))e[f.k]='Choose a month.';}
+    else if(f.t==='time'&&!validReminderTime(val))e[f.k]='Choose a valid reminder time.';
     else if(f.t==='money'&&f.k!=='unit'){const m=parseMoney(val);if(f.opt&&!val)return;if(m==null||m<=0)e[f.k]='Enter an amount above 0, with up to 2 decimals.';else if(m>MAX_MONEY)e[f.k]='That amount looks too large.';}
     else if(f.t==='money'){const m=parseMoney(val);if(m==null||m<=0)e[f.k]='Enter a price above 0, with up to 2 decimals.';else if(m>MAX_UNIT)e[f.k]='That price looks too large.';}
     else if(f.t==='qty'){const q=parseQty(val);if(q==null||q<=0)e[f.k]='Enter a quantity above 0 (up to 3 decimals).';else if(q>MAX_QTY)e[f.k]='That quantity looks too large.';}
@@ -355,7 +407,7 @@ export function showErrors(e){
   if(first){first.scrollIntoView({block:'center'});const i=$('input,select,textarea,button.tenant-picker',first);if(i)try{i.focus({preventScroll:true});}catch(x){}}
 }
 export function upsert(a,o){const i=a.findIndex(x=>x.id===o.id);if(i>=0)a[i]=o;else a.push(o);}
-export function saveForm(){
+export async function saveForm(){
   if(!F||F.saving)return;const sp=F.sp,v=F.vals;
   const e=validate();showErrors(e);if(Object.keys(e).length){toast('Check the highlighted fields','bad');return;}
   if(v.date&&sp.fields.some(f=>f.k==='date')&&!validDate(v.date)){return;}
@@ -367,8 +419,22 @@ export function saveForm(){
     if(journey)journey.vehicle=rec.x.vehicle;
   }
   if(sp.dup&&!F.dupAck){const m=sp.dup(rec);if(m){F.dupAck=true;const w=$('#warn');w.textContent=m;w.hidden=false;$('#saveBtn').lastChild.textContent='Save anyway';w.scrollIntoView({block:'center'});return;}}
+  const hasReminder=normalizeReminderModes(v.reminder).length>0||['tenants','newTenants'].some(key=>Array.isArray(v[key])&&v[key].some(t=>normalizeReminderModes(t.reminder).length>0));
+  if(hasReminder){
+    F.saving=true;const button=$('#saveBtn');if(button)button.disabled=true;
+    try{
+      if(!await requestNotificationPermission()){
+        F.saving=false;if(button)button.disabled=false;
+        showErrors({reminder:'Allow notifications to use bill reminders.'});
+        toast('Allow notifications to use bill reminders','bad');return;
+      }
+    }catch(error){
+      F.saving=false;if(button)button.disabled=false;
+      toast('Could not check notification permissions','bad');return;
+    }
+  }
   if(sp.cat==='rent'&&v.addHouse){
-    const h={id:uid(),name:v.houseName.trim(),rentDir:v.houseDir,addr:v.houseAddr.trim(),meter:v.houseMeter.trim(),rentAmountP:v.houseDir==='paid'?parseMoney(v.houseRentAmount):null,dueBy:v.houseDir==='paid'?v.houseDueBy:'first',dueDay:v.houseDir==='paid'&&v.houseDueBy==='custom'?Number(v.houseDueDay):null,tenants:v.houseDir==='received'?(v.newTenants||[]).filter(t=>t.name.trim()).map(t=>({name:t.name.trim(),agStart:t.agStart,agEnd:t.agEnd,rentAmountP:parseMoney(t.rentAmount),dueBy:t.dueBy||'first',dueDay:t.dueBy==='custom'?Number(t.dueDay):null})):[]};
+    const h={id:uid(),name:v.houseName.trim(),rentDir:v.houseDir,addr:v.houseAddr.trim(),meter:v.houseMeter.trim(),rentAmountP:v.houseDir==='paid'?parseMoney(v.houseRentAmount):null,dueBy:v.houseDir==='paid'?v.houseDueBy:'first',dueDay:v.houseDir==='paid'&&v.houseDueBy==='custom'?Number(v.houseDueDay):null,reminder:v.houseDir==='paid'?normalizeReminderModes(v.reminder):[],reminderDay:v.houseDir==='paid'&&normalizeReminderModes(v.reminder).includes('custom')?Number(v.reminderDay):null,reminderTime:v.houseDir==='paid'?v.reminderTime:DEFAULT_REMINDER_TIME,tenants:v.houseDir==='received'?(v.newTenants||[]).filter(t=>t.name.trim()).map(t=>({name:t.name.trim(),agStart:t.agStart,agEnd:t.agEnd,rentAmountP:parseMoney(t.rentAmount),dueBy:t.dueBy||'first',dueDay:t.dueBy==='custom'?Number(t.dueDay):null,reminder:normalizeReminderModes(t.reminder),reminderDay:normalizeReminderModes(t.reminder).includes('custom')?Number(t.reminderDay):null,reminderTime:reminderTimeOrDefault(t.reminderTime)})):[]};
     S.houses.push(h);base.houseId=h.id;base.party=h.name;rec.houseId=h.id;rec.party=h.name;
   }
   F.saving=true;const b=$('#saveBtn');if(b)b.disabled=true;
@@ -376,11 +442,11 @@ export function saveForm(){
   if(sp.cat==='rent'){
     const house=houseOf(rec.houseId);
     if(house){
-      if(rec.dir==='paid'){if(!Number.isInteger(house.rentAmountP))house.rentAmountP=rec.amountP;house.dueBy=v.dueBy;house.dueDay=v.dueBy==='custom'?Number(v.dueDay):null;}
+      if(rec.dir==='paid'){if(!Number.isInteger(house.rentAmountP))house.rentAmountP=rec.amountP;house.dueBy=v.dueBy;house.dueDay=v.dueBy==='custom'?Number(v.dueDay):null;house.reminder=normalizeReminderModes(v.reminder);house.reminderDay=normalizeReminderModes(v.reminder).includes('custom')?Number(v.reminderDay):null;house.reminderTime=v.reminderTime;}
       else{
         const tenants=Array.isArray(house.tenants)?house.tenants:[];
         const index=tenants.findIndex(t=>(typeof t==='string'?t:t&&t.name)===rec.tenant);
-        if(index>=0){const profile=typeof tenants[index]==='string'?{name:tenants[index],agStart:'',agEnd:'',rentAmountP:null}:tenants[index];house.tenants[index]=Object.assign({},profile,{rentAmountP:Number.isInteger(profile.rentAmountP)?profile.rentAmountP:rec.amountP,dueBy:v.dueBy,dueDay:v.dueBy==='custom'?Number(v.dueDay):null});}
+        if(index>=0){const profile=typeof tenants[index]==='string'?{name:tenants[index],agStart:'',agEnd:'',rentAmountP:null}:tenants[index];house.tenants[index]=Object.assign({},profile,{rentAmountP:Number.isInteger(profile.rentAmountP)?profile.rentAmountP:rec.amountP,dueBy:v.dueBy,dueDay:v.dueBy==='custom'?Number(v.dueDay):null,reminder:normalizeReminderModes(v.reminder),reminderDay:normalizeReminderModes(v.reminder).includes('custom')?Number(v.reminderDay):null,reminderTime:v.reminderTime});}
       }
     }
   }
@@ -394,6 +460,17 @@ export function saveForm(){
 
 Object.assign(A,{
  saveForm:saveForm,
+ toggleReminderSelect:el=>{
+   const select=el.closest('.reminder-select'),menu=select&&select.querySelector('.reminder-select-menu');
+   if(!select||!menu)return;
+   const opening=menu.hidden;
+   document.querySelectorAll('.reminder-select').forEach(other=>{
+     if(other===select)return;
+     const otherMenu=other.querySelector('.reminder-select-menu'),trigger=other.querySelector('.reminder-select-trigger');
+     if(otherMenu)otherMenu.hidden=true;if(trigger)trigger.setAttribute('aria-expanded','false');
+   });
+   menu.hidden=!opening;el.setAttribute('aria-expanded',String(opening));
+ },
  tenantPicker:()=>{if(!F)return;const v=F.vals,house=houseOf(v.houseId),profiles=v.addHouse?(v.newTenants||[]).filter(t=>t.name.trim()):tenantProfiles(house);sheet('<h2>Choose a tenant</h2>'+tenantOptions(profiles,v.tenant,'tenantPick'));},
  tenantPick:el=>{if(!F)return;applyTenant(el.dataset.value||'');closeL();draw(true);},
  tenantAdd:el=>{if(!F)return;const group=el.dataset.group,rows=group==='tenants'?F.vals.tenants:F.vals.newTenants;if(rows&&rows.length<100){rows.push(emptyTenant());draw(true);}},

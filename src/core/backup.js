@@ -1,5 +1,6 @@
 /* @auto-imports */
 import {validDate,validMonth} from './dates.js';
+import {REMINDER_MODES,monthlyReminderError,reminderError} from './reminders.js';
 import {MAX_MONEY} from './money.js';
 import {S} from '../data/state.js';
 import {ICONS} from '../ui/icons.js';
@@ -17,6 +18,20 @@ export function validateData(d){
   if(!d||typeof d!=='object'||d.app!=='expenses'||d.v!==1||!d.data)return 'This is not an Expenses backup.';
   const x=d.data;if(!Array.isArray(x.records)||!Array.isArray(x.dist)||!Array.isArray(x.cats)||typeof x.prices!=='object')return 'The backup is missing required sections.';
   if(x.records.length>50000||x.dist.length>50000||x.cats.length>200)return 'The backup is larger than expected.';
+  const validReminder=(item,dueDate,dueDay)=>{
+    if(item.reminder===undefined)return true;
+    const selections=item.reminder;
+    if(Array.isArray(selections)){
+      if(new Set(selections).size!==selections.length||selections.some(mode=>!REMINDER_MODES.includes(mode)))return false;
+      if(!selections.length)return true;
+    }else if(selections==='none')return true;
+    else if(!REMINDER_MODES.includes(selections))return false;
+    const error=validDate(dueDate)
+      ?reminderError(dueDate,selections,item.reminderDay,item.reminderTime)
+      :monthlyReminderError(dueDay,selections,item.reminderDay,item.reminderTime);
+    return !error;
+  };
+  const dueDayFor=item=>item.dueBy==='first'?1:item.dueBy==='seventh'?7:item.dueDay;
   if(x.routes!==undefined){
     if(!Array.isArray(x.routes)||x.routes.length>200)return 'The backup routes are not valid.';
     const routeIds=new Set(),routeNames=new Set();
@@ -34,7 +49,7 @@ export function validateData(d){
     const mobileBillIds=new Set(),mobileBillNames=new Set();
     for(const b of x.mobileBills){
       if(!b||typeof b.id!=='string'||!b.id||b.id.length>80||mobileBillIds.has(b.id)||typeof b.name!=='string'||!b.name.trim()||b.name.length>80||mobileBillNames.has(b.name.trim().toLowerCase())||
-        !['Airtel','Jio','Vi','BSNL','MTNL','Other'].includes(b.provider)||!['prepaid','postpaid'].includes(b.plan)||
+        !['Airtel','Jio','Vi','BSNL','MTNL','Other'].includes(b.provider)||!['prepaid','postpaid'].includes(b.plan)||!validReminder(b,'',b.dueDay)||
         !Number.isInteger(b.dueDay)||b.dueDay<1||b.dueDay>31||!Number.isInteger(b.amountP)||b.amountP<=0||b.amountP>MAX_MONEY)return 'A mobile bill in the backup is not valid.';
       mobileBillIds.add(b.id);mobileBillNames.add(b.name.trim().toLowerCase());
     }
@@ -45,8 +60,13 @@ export function validateData(d){
     (x.dueBy!=='custom'||(Number.isInteger(x.dueDay)&&x.dueDay>=1&&x.dueDay<=31));
   if(Array.isArray(x.houses)&&x.houses.some(h=>
     (h.rentAmountP!==undefined&&h.rentAmountP!==null&&(!Number.isInteger(h.rentAmountP)||h.rentAmountP<=0||h.rentAmountP>MAX_MONEY))||
-    !validDue(h)||(Array.isArray(h.tenants)&&h.tenants.some(t=>typeof t!=='string'&&!validDue(t)))))return 'A house rent amount or payment due day in the backup is not valid.';
-  for(const r of x.records){if(!r||typeof r.id!=='string'||!validDate(r.date)||!Number.isInteger(r.amountP)||r.amountP<0||r.amountP>MAX_MONEY*10||!ids.has(r.cat)||(r.period&&!validMonth(r.period))||(r.tenant!==undefined&&(typeof r.tenant!=='string'||r.tenant.length>80)))return 'A record in the backup is not valid.';}
+    !validDue(h)||!validReminder(h,'',dueDayFor(h))||(Array.isArray(h.tenants)&&h.tenants.some(t=>typeof t!=='string'&&(!validDue(t)||!validReminder(t,'',dueDayFor(t)))))))return 'A house rent amount or payment due day in the backup is not valid.';
+  for(const r of x.records){
+    if(!r||typeof r.id!=='string'||!validDate(r.date)||!Number.isInteger(r.amountP)||r.amountP<0||r.amountP>MAX_MONEY*10||!ids.has(r.cat)||(r.period&&!validMonth(r.period))||(r.tenant!==undefined&&(typeof r.tenant!=='string'||r.tenant.length>80)))return 'A record in the backup is not valid.';
+    const extra=r.x&&typeof r.x==='object'?r.x:{},dueDate=r.cat==='mobilebill'?extra.dueDate:extra.due;
+    if(r.cat==='rent'&&!validReminder(extra,'',dueDayFor(extra)))return 'A rent reminder in the backup is not valid.';
+    if((r.cat==='electricity'||r.cat==='waterbill'||r.cat==='mobilebill')&&!validReminder(extra,dueDate,undefined))return 'A bill reminder in the backup is not valid.';
+  }
   for(const r of x.dist){if(!r||typeof r.id!=='string'||!validDate(r.date)||!Number.isInteger(r.kmM)||r.kmM<0)return 'A journey in the backup is not valid.';}
   return null;
 }
