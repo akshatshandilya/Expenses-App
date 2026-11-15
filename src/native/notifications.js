@@ -133,6 +133,7 @@ async function syncNow(){
       body:item.mode==='overdue'?'This bill is overdue. Due date: '+dueLabel+'.':'This bill is due on '+dueLabel+'.',
       channelId:CHANNEL,
       schedule:item.occurrence.repeatDaily?{at:at,every:'day'}:{at:at},
+      isExactNotification:false,
       extra:{expensesBillReminder:true,key:item.key}
     });
   }
