@@ -3,9 +3,11 @@
 
     <!--
       Privacy by construction: this app declares NO INTERNET permission, so Android itself
-      stops it from opening network connections. Local notifications add notification and
-      boot-receiver permissions; exact alarms are intentionally left to Android's inexact fallback.
+      stops it from opening network connections. Notification permission is declared directly
+      here so Android and Xiaomi's permission manager can identify the app for notification access.
+      Exact alarms are intentionally left to Android's inexact fallback.
     -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" tools:node="remove" />
     <application
         android:allowBackup="false"

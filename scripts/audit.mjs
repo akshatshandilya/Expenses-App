@@ -8,7 +8,7 @@ let bad=0;const check=(name,ok,detail='')=>{console.log((ok?'PASS ':'FAIL ')+nam
 const manifest=readFileSync('android/app/src/main/AndroidManifest.xml','utf8');
 check('manifest declares no INTERNET permission',!/uses-permission[^>]*INTERNET/.test(manifest));
 const declaredPermissions=Array.from(manifest.matchAll(/<uses-permission\b([^>]*)>/g),m=>m[1]);
-check('manifest removes exact-alarm permission and declares no others',declaredPermissions.length===1&&/android:name="android\.permission\.SCHEDULE_EXACT_ALARM"/.test(declaredPermissions[0])&&/tools:node="remove"/.test(declaredPermissions[0]));
+check('manifest declares notification access and removes exact-alarm access',declaredPermissions.length===2&&declaredPermissions.some(p=>/android:name="android\.permission\.POST_NOTIFICATIONS"/.test(p))&&declaredPermissions.some(p=>/android:name="android\.permission\.SCHEDULE_EXACT_ALARM"/.test(p)&&/tools:node="remove"/.test(p)));
 check('Android backup disabled',/allowBackup="false"/.test(manifest));
 check('cleartext traffic disabled',/usesCleartextTraffic="false"/.test(manifest));
 const net=text.filter(([f,t])=>f.endsWith('.js')&&/\b(fetch|XMLHttpRequest|WebSocket|EventSource|sendBeacon|importScripts)\b/.test(t)).map(([f])=>f);
