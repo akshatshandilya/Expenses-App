@@ -121,7 +121,8 @@ h1,h2,h3,p{margin:0}
 .amt{font:700 15.5px var(--fd);font-variant-numeric:tabular-nums;text-align:right;display:flex;flex-direction:column;align-items:flex-end;white-space:nowrap}
 .amt.in{color:var(--good)}
 .due{font:700 10.5px var(--fb);font-style:normal;color:var(--warn);background:var(--warnbg);padding:2px 6px;border-radius:6px;margin-top:2px}
-.daylab{padding:8px 14px;background:var(--s2);font:600 12px var(--fb);color:var(--ink2);letter-spacing:.04em;border-bottom:1px solid var(--line)}
+.daylab{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 14px;background:var(--s2);font:600 12px var(--fb);color:var(--ink2);letter-spacing:.04em;border-bottom:1px solid var(--line)}
+.daytotal{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:normal;white-space:nowrap}
 
 /* stats */
 .stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px}

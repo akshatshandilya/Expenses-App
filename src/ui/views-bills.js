@@ -1,10 +1,10 @@
 /* @auto-imports */
-import {curMonth,fmtDate,monLabel,monthDate} from '../core/dates.js';
+import {curMonth,fmtDate,monLabel,monthDate,weekday} from '../core/dates.js';
 import {fmt} from '../core/money.js';
 import {counted,recsIn,sum} from '../core/rules.js';
 import {esc} from '../core/util.js';
 import {S,UI,catOf,houseOf,houseRentDir,tenantProfiles,paymentDueLabel} from '../data/state.js';
-import {empty,hd,monNav,recList,stats} from './components.js';
+import {empty,hd,monNav,recList,recRow,stats} from './components.js';
 import {ic} from './icons.js';
 import {V} from './registry.js';
 /* @end-imports */
@@ -57,12 +57,20 @@ V.houses=()=>hd('Houses')+'<p class="sub" style="margin:-4px 2px 12px">Manage th
   '<div class="cta"><button class="btn pri block" data-act="addHouse">'+ic('plus',20)+'Add a house</button></div>';
 
 /* category screen for simple kinds */
+function dailyExpenseList(records){
+  const days=new Map();
+  records.forEach(record=>{
+    if(!days.has(record.date))days.set(record.date,[]);
+    days.get(record.date).push(record);
+  });
+  return Array.from(days,([date,dayRecords])=>'<div class="list"><div class="daylab"><span>'+weekday(date)+', '+fmtDate(date)+'</span><span class="daytotal">'+fmt(sum(dayRecords.filter(counted)))+'</span></div>'+dayRecords.map(recRow).join('')+'</div>').join('');
+}
 V.cat=p=>{
   const c=catOf(p.id);if(!c)return hd('Category')+empty('info','Category not found','It may have been removed.');
   const mk=S.mon,a=recsIn(mk,r=>r.cat===c.id).sort((x,y)=>x.date<y.date?1:-1);
   const pr=S.prices[c.id];
   return hd(esc(c.name),(c.kind==='unit'&&c.id!=='gas'&&pr?'<span class="pchip" style="cursor:default">'+fmt(pr.cur)+' / '+esc(c.unit||'unit')+'</span>':''))+monNav()+
    stats([['Total this month',fmt(sum(a.filter(counted)))],['Records',String(a.length)]])+
-   (a.length?recList(a):empty(c.icon,'Nothing in '+monLabel(mk),'Add a record for this category.'))+
+   (a.length?(c.kind==='groceries'||c.kind==='simple'?dailyExpenseList(a):recList(a)):empty(c.icon,'Nothing in '+monLabel(mk),'Add a record for this category.'))+
    '<div class="cta"><button class="btn pri block" data-act="catAdd" data-id="'+esc(c.id)+'">'+ic('plus',20)+'Add '+esc(c.name.toLowerCase())+'</button></div>';
 };

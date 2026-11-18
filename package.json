@@ -34,7 +34,8 @@
     "test:mobile": "node tests/browser/mobile-bill-flow.mjs",
     "test:gas": "node tests/browser/gas-delivery-flow.mjs",
     "test:categories": "node tests/browser/category-gestures.mjs",
-    "test:all": "npm test && npm run test:smoke && npm run test:water && npm run test:gas && npm run test:travel && npm run test:cabs && npm run test:rent && npm run test:mobile && npm run test:categories && npm run test:parity"
+    "test:category-daily": "node tests/browser/category-daily-totals.mjs",
+    "test:all": "npm test && npm run test:smoke && npm run test:water && npm run test:gas && npm run test:travel && npm run test:cabs && npm run test:rent && npm run test:mobile && npm run test:categories && npm run test:category-daily && npm run test:parity"
   },
   "description": "Expenses: a private, offline household expense tracker for Android",
   "engines": {
