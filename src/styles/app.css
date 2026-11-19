@@ -35,7 +35,7 @@ body{background:var(--bg);color:var(--ink);font:400 15px/1.45 var(--fb);padding-
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
 h1,h2,h3,p{margin:0}
-.shell{position:relative;width:100%;max-width:430px;height:100%;display:flex;flex-direction:column;overflow:hidden}
+.shell{position:relative;width:100%;max-width:430px;height:100%;display:flex;flex-direction:column;overflow:hidden;overflow:clip}
 @media(min-width:520px){
   body{align-items:center}
   .shell{--pad:18px;height:min(100%,880px);border:1px solid var(--line);border-radius:32px;padding-inline:18px;box-shadow:var(--shadow)}
