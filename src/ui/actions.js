@@ -3,6 +3,7 @@ import {addMonths,curMonth,fmtClock,fmtDate,fmtStamp,monLabel,monthDate,pad,toda
 import {MAX_UNIT,fmt,mul,parseMoney,qtyStr} from '../core/money.js';
 import {setPrice,travelCostPerKm} from '../core/rules.js';
 import {$,esc,uid} from '../core/util.js';
+import {REG,activeProfile} from '../data/profiles.js';
 import {DLG,S,UI,blank,catOf,houseOf,persist,replaceState} from '../data/state.js';
 import {applyLockEffects} from '../native/lock.js';
 import {platform} from '../native/platform.js';
@@ -54,7 +55,7 @@ Object.assign(A,{
  back:()=>back(),
  tab:el=>tab(el.dataset.t),
  closeL:closeL,
- start:()=>{S.onboarded=true;persist();tab('home');},
+ start:()=>{S.onboarded=true;persist();if(A.firstRun&&A.firstRun())return;tab('home');},
  mon:el=>{S.mon=addMonths(S.mon,+el.dataset.d);draw(true);},
  monNow:()=>{S.mon=curMonth();draw(true);},
  yr:el=>{S.mon=addMonths(S.mon,12*+el.dataset.d);draw(true);},
@@ -228,7 +229,7 @@ Object.assign(A,{
    ask({title:'Delete '+c.name+'?',msg:'This removes the category and '+(n||d?details:'all associated data')+' from this device. This cannot be undone.',ok:'Delete category',danger:true,fn:()=>{S.cats=S.cats.filter(x=>x.id!==c.id);S.records=S.records.filter(r=>r.cat!==c.id);delete S.prices[c.id];if(c.id==='travel')S.dist=[];if(c.id==='mobilebill')S.mobileBills=[];if(UI.cf===c.id)UI.cf='all';persist();closeL();draw(true);toast('Category deleted');}});},
  delCat:()=>{sheet('<h2>Delete a category’s records</h2><p class="sub" style="margin-bottom:8px">The category stays. Only its records are removed.</p><div class="list">'+S.cats.map(c=>{const n=S.records.filter(r=>r.cat===c.id).length+(c.id==='travel'?S.dist.length:0);return '<button class="rec" data-act="delCatGo" data-id="'+esc(c.id)+'"'+(n?'':' disabled style="opacity:.5"')+'>'+chipOf(c)+'<span class="rt"><b>'+esc(c.name)+'</b><small>'+n+' record'+(n===1?'':'s')+'</small></span></button>';}).join('')+'</div><button class="btn block" data-act="closeL">Close</button>');},
  delCatGo:el=>{const c=catOf(el.dataset.id);if(!c)return;ask({title:'Delete all '+c.name+' records?',msg:'Every record in this category is removed from this device. This cannot be undone.',ok:'Delete records',danger:true,fn:()=>{S.records=S.records.filter(r=>r.cat!==c.id);if(c.id==='travel')S.dist=[];persist();closeL();draw(true);toast('Records deleted');}});},
- clearAll:()=>ask({title:'Clear all data?',msg:'This permanently deletes every record, price and setting on this device. Consider making a backup first.',ok:'Clear everything',danger:true,type:'DELETE',fn:()=>{const t=S.theme;replaceState(blank());S.onboarded=true;S.theme=t;S.mon=curMonth();persist();applyLockEffects();closeL();tab('home');toast('All data cleared');}}),
+ clearAll:()=>ask({title:'Clear all data?',msg:(REG.profiles.length>1?'This permanently deletes every record and price in the open profile, “'+activeProfile().name+'”. Other profiles are not affected. Consider making a backup first.':'This permanently deletes every record, price and setting on this device. Consider making a backup first.'),ok:'Clear everything',danger:true,type:'DELETE',fn:()=>{const t=S.theme,lk=S.lock;replaceState(blank());S.onboarded=true;S.theme=t;S.lock=lk;S.mon=curMonth();persist();applyLockEffects();closeL();tab('home');toast('All data cleared');}}),
  ncIcon:el=>{DLG.nc.icon=el.dataset.v;draw(true);},
  ncColor:el=>{DLG.nc.color=el.dataset.v;draw(true);},
  ncKind:el=>{DLG.nc.kind=el.dataset.v;draw(true);},

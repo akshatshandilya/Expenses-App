@@ -23,7 +23,7 @@ ok('first-launch animation finishes in about 2.6 s ('+ms+' ms)',ms>2000&&ms<4500
 ok('overlay removed afterwards',await page.evaluate(()=>document.querySelector('#launch').hidden));
 ok('first launch shows the welcome screen',await page.evaluate(()=>!!document.querySelector('[data-act="start"]')));
 ok('fresh install starts with no records',await page.evaluate(()=>window.__t.S.records.length===0));
-await page.click('[data-act="start"]');
+await page.click('[data-act="start"]');await page.click('[data-act="acSkip"]');
 ok('home shows ₹0 with no demo data',(await page.textContent('.big')).includes('₹0'));
 // lock
 await page.evaluate(()=>{const t=window.__t;t.S.lock={on:true,timeout:30};t.showLock(false);});

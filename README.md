@@ -43,7 +43,7 @@ To build the APK locally you also need JDK 21 and the Android SDK: `npm run sync
 
 ## Privacy
 
-No account, ads, analytics, crash reporting or cloud. The app declares no internet permission. Records are AES-256-GCM encrypted with a key kept in the Android Keystore, and excluded from Android backup. Local bill reminders need Android notification permission and work offline. Optional app lock uses the phone's own fingerprint/face/screen lock. Full details and limits: `docs/SECURITY.md`.
+No ads, analytics or crash reporting. Personal profiles stay on the phone. Shared profiles (optional, need an account) sync through your own Supabase project, end-to-end encrypted: the server only stores data it cannot read. The app declares the internet permission for that, and its Content-Security-Policy allows only that one host. Records on the phone are AES-256-GCM encrypted with a key kept in the Android Keystore, and excluded from Android backup. Local bill reminders need Android notification permission and work offline. Optional app lock uses the phone's own fingerprint/face/screen lock. Full details and limits: `docs/SECURITY.md`.
 
 ## Layout
 

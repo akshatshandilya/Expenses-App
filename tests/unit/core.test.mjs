@@ -4,7 +4,7 @@ import {parseMoney,parseQty,mul,fmt,rs} from '../../src/core/money.js';
 import {addMonths,monthDate,validDate,validMonth,pad} from '../../src/core/dates.js';
 import {S,replaceState,blank,migrateState,tenantProfiles,paymentDueLabel} from '../../src/data/state.js';
 import {spent,catSpent,priceOn,setPrice,sum,travelCostPerKm} from '../../src/core/rules.js';
-import {buildCsv,csvCell} from '../../src/core/csv.js';
+import {buildCsv,csvCell,csvMonths,csvCount} from '../../src/core/csv.js';
 import {addDays,monthlyReminderError,reminderError,reminderNotificationTime,reminderOccurrencesForDueDate,validReminderTime} from '../../src/core/reminders.js';
 
 test('money parsing is exact and strict',()=>{
@@ -145,6 +145,14 @@ test('tenant profiles normalize legacy names and retain agreement data',()=>{
   assert.equal(paymentDueLabel({dueBy:'first'}),'1st of every month');
   assert.equal(paymentDueLabel({dueBy:'seventh'}),'7th of every month');
   assert.equal(paymentDueLabel({dueBy:'custom',dueDay:12}),'12th of every month');
+});
+test('CSV export can be limited to one month or a range, and the month list starts at the first data',()=>{
+  replaceState(blank());S.records=[rec({cat:'water',date:'2026-07-05',amountP:100}),rec({cat:'water',date:'2026-08-10',amountP:200}),rec({cat:'rent',dir:'paid',date:'2026-10-01',period:'2026-09',amountP:300}),rec({cat:'water',date:'2026-10-20',amountP:400})];S.dist=[{id:'d1',date:'2026-08-15',kmM:1000,ts:1}];
+  const ms=csvMonths();assert.equal(ms[0],'2026-07');assert.ok(ms.includes('2026-08')&&ms.includes('2026-09')&&ms.includes('2026-10'));assert.ok(ms.every((m,i)=>!i||m>ms[i-1]));
+  const lines=o=>buildCsv(o).split('\n').length-1;
+  assert.equal(lines(),5);assert.equal(lines({from:'2026-08',to:'2026-08'}),2);
+  assert.equal(lines({from:'2026-09',to:'2026-09'}),1);/* rent paid in October for September counts as September */
+  assert.equal(lines({from:'2026-07',to:'2026-09'}),4);assert.equal(csvCount({from:'2026-07',to:'2026-09'}),4);assert.equal(csvCount({from:'2020-01',to:'2020-02'}),0);
 });
 test('CSV export neutralises spreadsheet formulas and quotes properly',()=>{
   assert.match(csvCell('=SUM(A1)'),/^"?'=/);assert.match(csvCell('+1'),/^"?'\+/);assert.match(csvCell('@x'),/^"?'@/);

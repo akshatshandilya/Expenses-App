@@ -32,17 +32,37 @@ export async function open(b64){
   return{seq:seq,data:JSON.parse(new TextDecoder().decode(pt))};
 }
 
+/* Each profile has its own pair of slot files. The first profile keeps the original file names, so data written by
+   earlier versions of the app opens unchanged and an older app version can still read it. */
+export const slotsFor=id=>id==='main'?SLOTS:['p-'+id+'-a.bin','p-'+id+'-b.bin'];
+let activeSlots=SLOTS;
 export let seq=0,next=0,queued=null,running=null,failed=false;
+/* Point the live store at another profile's files. Any pending write finishes first. */
+export async function switchStore(slots){
+  await flushState();
+  seq=0;next=0;queued=null;running=null;failed=false;activeSlots=slots;
+}
+/* Read the newest valid copy from a pair of slot files. */
+export async function readBest(slots){
+  let found=0,best=null;
+  for(let i=0;i<slots.length;i++){
+    const b=await platform.readFile(slots[i]);if(!b)continue;found++;
+    try{const r=await open(b);if(!best||r.seq>best.seq)best={seq:r.seq,slot:i,data:r.data};}catch(e){}
+  }
+  return{found:found,best:best};
+}
+/* Write a small document to a pair of slot files, always into the slot that is not the newest. */
+export async function writeSlots(slots,obj){
+  const r=await readBest(slots);
+  const seqNext=r.best?(r.best.seq+1)>>>0:1,slot=r.best?1-r.best.slot:0;
+  await platform.writeFile(slots[slot],await seal(obj,seqNext));
+}
 
 /* Resolves to {state} (or {state:null} on a fresh install). Throws {code:'unreadable'} if files exist but cannot be opened. */
 export async function loadState(){
-  let found=0,best=null;
-  for(let i=0;i<SLOTS.length;i++){
-    const b=await platform.readFile(SLOTS[i]);if(!b)continue;found++;
-    try{const r=await open(b);if(!best||r.seq>best.seq)best={seq:r.seq,slot:i,data:r.data};}catch(e){}
-  }
-  if(!best){if(found){const e=new Error('unreadable');e.code='unreadable';throw e;}return{state:null};}
-  seq=best.seq;next=1-best.slot;return{state:best.data};
+  const r=await readBest(activeSlots);
+  if(!r.best){if(r.found){const e=new Error('unreadable');e.code='unreadable';throw e;}return{state:null};}
+  seq=r.best.seq;next=1-r.best.slot;return{state:r.best.data};
 }
 /* Queue a save of the latest snapshot. Several quick changes collapse into one write. */
 export function saveState(obj){
@@ -52,7 +72,7 @@ export function saveState(obj){
       while(queued!==null){
         const snap=JSON.parse(queued);queued=null;
         seq=(seq+1)>>>0;
-        await platform.writeFile(SLOTS[next],await seal(snap,seq));
+        await platform.writeFile(activeSlots[next],await seal(snap,seq));
         next=1-next;failed=false;
       }
     }catch(e){failed=true;}finally{running=null;if(queued!==null&&!failed)saveState(JSON.parse(queued));}
@@ -61,4 +81,4 @@ export function saveState(obj){
 }
 export function flushState(){return running||Promise.resolve();}
 export const saveFailed=()=>failed;
-export function _resetForTests(){keyPromise=null;seq=0;next=0;queued=null;running=null;failed=false;}
+export function _resetForTests(){keyPromise=null;seq=0;next=0;queued=null;running=null;failed=false;activeSlots=SLOTS;}

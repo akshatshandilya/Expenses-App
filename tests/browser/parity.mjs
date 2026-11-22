@@ -33,7 +33,7 @@ const click=(p,s)=>p.click(s);
 const act=(n,extra='')=>p=>p.click(`[data-act="${n}"]${extra}`,{force:true});
 const fill=(s,v)=>p=>p.fill(s,v);
 const steps=[
- ['welcome',null],['start',act('start')],
+ ['welcome',null],['start',async p=>{await p.click('[data-act="start"]',{force:true});await p.click('[data-act="acSkip"]',{force:true,timeout:800}).catch(()=>{});}],
  ['tab expenses',act('tab','[data-t="expenses"]')],['search rice',fill('#q','rice')],['clear search',fill('#q','')],
  ['sort amount',p=>p.selectOption('#sort','amtDesc')],['filter travel',act('cf','[data-id="travel"]')],
  ['tab reports',act('tab','[data-t="reports"]')],['year view',act('repView','[data-v="year"]')],['prev year',act('yr','[data-d="-1"]')],['month view',act('repView','[data-v="month"]')],

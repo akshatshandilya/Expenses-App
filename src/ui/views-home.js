@@ -7,10 +7,12 @@ import {S,UI} from '../data/state.js';
 import {chipOf,empty,hd,monNav,recList,recRow,recTitle} from './components.js';
 import {ic} from './icons.js';
 import {V} from './registry.js';
+import {REG,activeProfile} from '../data/profiles.js';
+import {homePills} from './views-profiles.js';
 /* @end-imports */
 V.welcome=()=>'<div class="welcome"><div class="brand"><span class="logo">'+ic('wallet',28)+'</span><h1>Expenses</h1></div>'+
- '<p class="lead">A private monthly log for your household spending. It works offline and keeps everything on your phone.</p>'+
- '<ul class="pts"><li>'+ic('shield',22)+'<div><b>No account, no tracking</b><span>No sign-up, ads or analytics. Nothing is sent to a server.</span></div></li>'+
+ '<p class="lead">A private monthly log for your household spending. It works offline, and you can share a profile with family.</p>'+
+ '<ul class="pts"><li>'+ic('shield',22)+'<div><b>Private by design</b><span>No ads or analytics. Personal profiles never leave this phone. Shared profiles are end-to-end encrypted.</span></div></li>'+
  '<li>'+ic('lock',22)+'<div><b>Yours alone</b><span>Optional app lock with your fingerprint or screen lock.</span></div></li>'+
  '<li>'+ic('download',22)+'<div><b>You stay in control</b><span>Export, back up or delete your records any time.</span></div></li></ul>'+
  '<button class="btn pri block" data-act="start">Get started</button></div>';
@@ -34,7 +36,7 @@ V.home=()=>{
     '<button class="btn soft block" data-act="categoryDeleteData"'+(selectedData?'':' disabled')+'>Delete selected category data</button>'+
     '<button class="btn dan block" data-act="categoryDeleteSelected">Delete selected categories</button></div>';
   const recent=S.records.slice().sort((a,b)=>(b.ts||0)-(a.ts||0)||(a.date<b.date?1:-1)).slice(0,5);
-  return '<header class="th"><div><div class="eyebrow">'+g+'</div><h1>Expenses</h1></div><button class="clockb" data-act="todaySheet" aria-label="Open today and calendar"><span class="clkd">'+ic('calendar',16)+'<span id="clkDate">'+dayLine()+'</span></span><span class="clkt" id="clkTime">'+fmtClock()+'</span></button></header>'+monNav()+
+  return '<header class="th"><div><div class="eyebrow">'+g+'</div><h1 class="pft"><button data-act="profSwitch" aria-haspopup="dialog" aria-label="Switch profile. Open now: '+esc(activeProfile().name)+'"><span>'+esc(activeProfile().name)+'</span>'+ic('chevD',22)+'</button></h1></div><button class="clockb" data-act="todaySheet" aria-label="Open today and calendar"><span class="clkd">'+ic('calendar',16)+'<span id="clkDate">'+dayLine()+'</span></span><span class="clkt" id="clkTime">'+fmtClock()+'</span></button></header>'+homePills()+monNav()+
    '<section class="card hero" aria-label="Month summary"><div class="eyebrow">Spent in '+monLabel(mk)+'</div><div class="num big">'+fmt(tot)+'</div><div class="delta">'+delta+'</div>'+
    ((recv||due)?'<div class="pills">'+(recv?'<span class="pill good">'+ic('arrIn',14)+'Rent received '+fmt(recv)+' (not counted)</span>':'')+(due?'<span class="pill warn">Due '+fmt(due)+' (not counted yet)</span>':'')+'</div>':'')+'</section>'+
    '<button class="btn pri block" data-act="pick" style="min-height:54px;font-size:16px">'+ic('plus',22)+'Add expense</button>'+

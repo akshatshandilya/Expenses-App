@@ -4,7 +4,7 @@
 
 | Area | What the app does |
 |---|---|
-| Network | No INTERNET permission in the manifest, so Android blocks all network access. No analytics, ads, crash reporting or cloud code. The page has a Content-Security-Policy that allows only its own files. |
+| Network | INTERNET permission is declared only so shared profiles can sync. The page's Content-Security-Policy allows its own files and the one configured Supabase https host, and all network calls live in `src/sync/backend.js` (checked by `npm run audit:project`). No analytics, ads or crash reporting. Personal profiles never use the network. Shared-profile data is encrypted on the phone before upload (see `docs/supabase/README.md` for the design and known limits). |
 | Notifications | Bill reminders are local and scheduled on-device. Android's notification permission is requested when a reminder is enabled; exact-alarm access is removed so Android may deliver at an inexact time. |
 | Storage | One JSON document, AES-256-GCM encrypted, in two alternating files in the app's private folder. Each file has an authenticated header with a write counter. A crash mid-write cannot destroy the last good copy. No SQL is used, so there is no SQL injection surface. |
 | Keys | A random 256-bit key is made on first run and stored through the Android Keystore (`@aparajita/capacitor-secure-storage`). No keys or passwords are in the source. |

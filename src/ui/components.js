@@ -6,6 +6,7 @@ import {isIncome} from '../core/rules.js';
 import {esc} from '../core/util.js';
 import {S,catOf,houseOf} from '../data/state.js';
 import {ic} from './icons.js';
+import {activeProfile} from '../data/profiles.js';
 /* @end-imports */
 export const chipOf=c=>'<span class="ci" style="--c:'+esc(c.color)+'">'+ic(c.icon,22)+'</span>';
 export const hd=(t,extra)=>'<header class="hd"><button class="ib" data-act="back" aria-label="Back">'+ic('chevL')+'</button><h1>'+t+'</h1>'+(extra||'')+'</header>';
@@ -60,6 +61,6 @@ export function recSub(r){
 }
 export function recRow(r){
   const c=catOf(r.cat)||{icon:'dots',color:'#6F8079'};const inc=isIncome(r);
-  return '<button class="rec" data-act="rec" data-id="'+esc(r.id)+'">'+chipOf(c)+'<span class="rt"><b>'+esc(recTitle(r))+(r.demo?'<i class="demo">DEMO</i>':'')+'</b><small>'+esc(recSub(r))+'</small>'+(r.ts?'<small class="stamp">Added '+fmtStamp(r.ts)+'</small>':'')+'</span><span class="amt'+(inc?' in':'')+'">'+(inc?'+':'')+fmt(r.amountP)+(r.status==='due'?'<em class="due">Due</em>':'')+'</span></button>';
+  return '<button class="rec" data-act="rec" data-id="'+esc(r.id)+'">'+chipOf(c)+'<span class="rt"><b>'+esc(recTitle(r))+(r.demo?'<i class="demo">DEMO</i>':'')+'</b><small>'+esc(recSub(r))+'</small>'+(r.ts?'<small class="stamp">Added '+(r.by&&activeProfile().shared?'by '+esc(r.by)+' · ':'')+fmtStamp(r.ts)+'</small>':'')+'</span><span class="amt'+(inc?' in':'')+'">'+(inc?'+':'')+fmt(r.amountP)+(r.status==='due'?'<em class="due">Due</em>':'')+'</span></button>';
 }
 export const recList=a=>'<div class="list">'+a.map(recRow).join('')+'</div>';

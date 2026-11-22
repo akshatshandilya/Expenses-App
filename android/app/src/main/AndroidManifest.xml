@@ -2,11 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
 
     <!--
-      Privacy by construction: this app declares NO INTERNET permission, so Android itself
-      stops it from opening network connections. Notification permission is declared directly
+      Internet access exists only for shared profiles (end-to-end encrypted sync). Personal profiles never use it, and
+      all network code lives in src/sync/backend.js (enforced by the audit). Notification permission is declared directly
       here so Android and Xiaomi's permission manager can identify the app for notification access.
       Exact alarms are intentionally left to Android's inexact fallback.
     -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" tools:node="remove" />
     <application

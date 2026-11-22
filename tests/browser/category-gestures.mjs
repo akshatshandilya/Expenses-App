@@ -13,7 +13,7 @@ const browser=await chromium.launch({executablePath:CHROME,args:['--no-sandbox']
 const page=await(await browser.newContext({reducedMotion:'reduce',viewport:{width:390,height:844},locale:'en-IN'})).newPage();page.setDefaultTimeout(5000);
 let fails=0;const ok=(n,c)=>{console.log((c?'PASS ':'FAIL ')+n);if(!c)fails++;};
 const clickAt=async locator=>{const box=await locator.boundingBox();await page.mouse.click(box.x+box.width/2,box.y+box.height/2);};
-await page.goto(`http://localhost:${srv.address().port}/`);await page.waitForSelector('html.ready');await page.click('[data-act=start]');
+await page.goto(`http://localhost:${srv.address().port}/`);await page.waitForSelector('html.ready');await page.click('[data-act=start]');await page.click('[data-act=acSkip]');
 await page.evaluate(()=>window.__t.S.records.push(
   {id:'bulk-groceries',cat:'groceries',date:window.__t.S.mon+'-01',amountP:100,status:'paid'},
   {id:'bulk-water',cat:'water',date:window.__t.S.mon+'-01',amountP:200,status:'paid'}

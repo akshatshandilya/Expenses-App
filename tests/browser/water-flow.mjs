@@ -16,7 +16,7 @@ let fails=0;const ok=(n,c)=>{console.log((c?'PASS ':'FAIL ')+n);if(!c)fails++;};
 await page.goto(`http://localhost:${srv.address().port}/`);await page.waitForSelector('html.ready');
 const txt=()=>page.evaluate(()=>document.querySelector('#screen').innerText);
 const day=n=>page.evaluate(n=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(n).padStart(2,'0');},n);
-await page.click('[data-act=start]');
+await page.click('[data-act=start]');await page.click('[data-act=acSkip]');
 await page.click('[data-act=pick]');await page.click('[data-act=pickGo][data-id=water]');
 ok('1-2 first visit asks for the price per bottle',(await txt()).includes('price per bottle')||(await txt()).includes('Price per bottle'));
 await page.click('[data-act=wSetupSave]');ok('validation: empty price is refused',(await page.textContent('#wsErr')).length>0);

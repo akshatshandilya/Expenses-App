@@ -15,7 +15,7 @@ const errors=[];page.on('pageerror',e=>errors.push(String(e)));
 let fails=0;const ok=(n,c)=>{console.log((c?'PASS ':'FAIL ')+n);if(!c)fails++;};
 const text=()=>page.locator('#screen').innerText();
 await page.goto(`http://localhost:${srv.address().port}/`);await page.waitForSelector('html.ready');
-await page.click('[data-act=start]');
+await page.click('[data-act=start]');await page.click('[data-act=acSkip]');
 await page.evaluate(()=>{window.__t.S.prices.gas={cur:9000,hist:[{from:'0000-00-00',price:9000}],log:[]};window.__t.draw(true);});
 await page.click('[data-act=pick]');
 ok('gas picker describes delivery date, quantity and cylinder price',(await text()).includes('Delivery date, quantity and cylinder price'));

@@ -15,12 +15,12 @@ const page=await(await browser.newContext({reducedMotion:'reduce',viewport:{widt
 let fails=0;const ok=(n,c)=>{console.log((c?'PASS ':'FAIL ')+n);if(!c)fails++;};
 const screen=()=>page.locator('#screen').innerText();
 await page.goto(`http://localhost:${srv.address().port}/`);await page.waitForSelector('html.ready');
-await page.click('[data-act=start]');await page.click('[data-act=openCat][data-id=rent]');
+await page.click('[data-act=start]');await page.click('[data-act=acSkip]');await page.click('[data-act=openCat][data-id=rent]');
 ok('Rent landing keeps its Rent Paid and Rent Received cards',await screen().then(t=>t.includes('Rent paid')&&t.includes('Rent received')));
 await page.click('[data-act=rentPick][data-v=paid]');
 ok('Rent Paid and Rent Received switcher appears above the month selector',await page.locator('[data-act=rentDir]').count()===2&&await page.locator('[data-act=rentDir]').nth(0).innerText().then(t=>t==='Rent paid')&&await page.locator('[data-act=rentDir]').nth(1).innerText().then(t=>t==='Rent received'));
 await page.click('[data-act=rentDir][data-v=received]');
-ok('Rent Received switcher changes the selected direction',await page.locator('[data-act=rentDir][data-v=received]').getAttribute('aria-selected').then(v=>v==='true')&&await screen().then(t=>t.includes('Rent received ·')));
+ok('Rent Received switcher changes the selected direction',await page.locator('[data-act=rentDir][data-v=received]').getAttribute('aria-selected').then(v=>v==='true')&&await screen().then(t=>/rent received ·/i.test(t)));
 await page.click('[data-act=rentDir][data-v=paid]');
 ok('Rent Paid opens house filters and has no current-month log button',await screen().then(t=>t.includes('All houses')&&!t.includes('Log rent in advance')));
 await page.click('[data-act=houses]');await page.click('[data-act=addHouse]');
@@ -48,7 +48,7 @@ ok('checking the card creates a paid rent record for the selected month',!!paidR
 ok('paid date is saved from the card date field',!!paidRecord&&paidRecord.date===paidDate);
 ok('paid date is visible on the rent card',await page.locator('.rent-due-card').innerText().then(t=>t.includes('Paid on')&&t.includes(paidDate.slice(8,10)+'/'+paidDate.slice(5,7)+'/'+paidDate.slice(0,4))));
 await page.locator('[data-act=rentEdit]').click();
-ok('rent editor shows Paid on and keeps the existing fields and device-themed Payment Due By',await page.locator('#f_date').count()===1&&await page.locator('#f_date').isVisible()&&await page.locator('#f_date').evaluate(el=>el.previousElementSibling.innerText.includes('Paid on'))&&await page.locator('#f_dueBy').count()===1&&await page.locator('#f_dueBy').evaluate(el=>el.classList.contains('device-theme'))&&await page.locator('#f_tenant').count()===0&&await page.locator('#f_method').count()===1&&await page.locator('#f_paid').count()===1&&await page.locator('#f_notes').count()===1);
+ok('rent editor shows Paid on and keeps the existing fields and device-themed Payment Due By (the Paid switch now lives on the card, not in the editor)',await page.locator('#f_date').count()===1&&await page.locator('#f_date').isVisible()&&await page.locator('#f_date').evaluate(el=>/paid on/i.test(el.previousElementSibling.innerText))&&await page.locator('#f_dueBy').count()===1&&await page.locator('#f_dueBy').evaluate(el=>el.classList.contains('device-theme'))&&await page.locator('#f_tenant').count()===0&&await page.locator('#f_method').count()===1&&await page.locator('#f_paid').count()===0&&await page.locator('#f_notes').count()===1);
 await page.click('[data-act=back]');
 await page.click('[data-act=mon][data-d="1"]');
 ok('future month offers advance logging',await screen().then(t=>t.includes('Log rent in advance')));
@@ -57,6 +57,7 @@ ok('advance rent form defaults to the selected future month',await page.locator(
 await page.click('[data-act=saveForm]');
 ok('advance action disappears after a rent record is saved',await screen().then(t=>!t.includes('Log rent in advance')&&t.includes('Payment due')));
 await page.click('[data-act=back]');await page.click('[data-act=back]');await page.click('[data-act=openCat][data-id=rent]');await page.click('[data-act=rentPick][data-v=received]');
+await page.click('[data-act=mon][data-d="-1"]'); /* the earlier step moved the month forward; return to the current month */
 await page.click('[data-act=houses]');await page.click('[data-act=addHouse]');
 await page.fill('#f_name','Lakeside Flat');await page.fill('#f_addr','Flat 8, Lake Road');
 await page.locator('[data-f=rentDir][value=received]').check();

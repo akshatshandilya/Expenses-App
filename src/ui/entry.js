@@ -412,7 +412,7 @@ export async function saveForm(){
   const e=validate();showErrors(e);if(Object.keys(e).length){toast('Check the highlighted fields','bad');return;}
   if(v.date&&sp.fields.some(f=>f.k==='date')&&!validDate(v.date)){return;}
   const base=sp.build(v);
-  const old=(sp.store==='dist'?S.dist:sp.store==='houses'?S.houses:sp.store==='mobileBills'?S.mobileBills:S.records).find(x=>x.id===F.id),rec=Object.assign({id:F.id,ts:(old&&old.ts)?old.ts:Date.now()},base);if(old)rec.es=Date.now();
+  const old=(sp.store==='dist'?S.dist:sp.store==='houses'?S.houses:sp.store==='mobileBills'?S.mobileBills:S.records).find(x=>x.id===F.id),rec=Object.assign({id:F.id,ts:(old&&old.ts)?old.ts:Date.now()},base);if(old){rec.es=Date.now();if(old.by)rec.by=old.by;}
   if(sp.cat==='travel'&&(F.p.journeyId||(old&&old.journeyId)))rec.journeyId=F.p.journeyId||(old&&old.journeyId);
   if(sp.cat==='travel'&&rec.journeyId&&rec.x&&rec.x.vehicle){
     const journey=S.dist.find(d=>d.id===rec.journeyId);

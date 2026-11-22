@@ -14,7 +14,7 @@ const page=await(await browser.newContext({reducedMotion:'reduce',viewport:{widt
 let fails=0;const ok=(n,c)=>{console.log((c?'PASS ':'FAIL ')+n);if(!c)fails++;};
 const screen=()=>page.locator('#screen').innerText();
 await page.goto(`http://localhost:${srv.address().port}/`);await page.waitForSelector('html.ready');
-await page.click('[data-act=start]');await page.click('[data-act=openCat][data-id=mobilebill]');
+await page.click('[data-act=start]');await page.click('[data-act=acSkip]');await page.click('[data-act=openCat][data-id=mobilebill]');
 await page.click('[data-act=mobileAdd]');
 ok('mobile bill form includes family member, themed provider, connection type, due-day presets and amount',await screen().then(t=>t.includes("Member's name")&&t.includes('Provider')&&t.includes('Prepaid')&&t.includes('Postpaid')&&t.includes('Bill Due By')&&t.includes('Bill amount'))&&await page.locator('#f_provider').evaluate(el=>el.classList.contains('device-theme'))&&await page.locator('#f_dueBy').locator('option').allTextContents().then(a=>a.includes('1st of every month')&&a.includes('5th of every month')&&a.includes('15th of every month')&&a.includes('Custom')));
 await page.fill('#f_name','Priya');await page.selectOption('#f_provider','Jio');await page.locator('[data-f=plan][value=postpaid]').check();

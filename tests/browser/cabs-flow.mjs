@@ -14,7 +14,7 @@ const browser=await chromium.launch({executablePath:CHROME,args:['--no-sandbox']
 const page=await (await browser.newContext({reducedMotion:'reduce',viewport:{width:390,height:844},locale:'en-IN'})).newPage();page.setDefaultTimeout(5000);
 let fails=0;const ok=(n,c)=>{console.log((c?'PASS ':'FAIL ')+n);if(!c)fails++;};
 await page.goto(`http://localhost:${srv.address().port}/`);await page.waitForSelector('html.ready');
-await page.click('[data-act=start]');
+await page.click('[data-act=start]');await page.click('[data-act=acSkip]');
 ok('Auto and Cabs appears as a built-in category',await page.locator('[data-act=openCat][data-id=cab]').count()===1);
 await page.click('[data-act=openCat][data-id=cab]');
 ok('category opens its monthly ride screen',await page.locator('#screen').innerText().then(t=>t.includes('Auto and Cabs')&&t.includes('No rides')));

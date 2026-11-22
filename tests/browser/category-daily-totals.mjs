@@ -12,7 +12,7 @@ const srv=http.createServer((q,r)=>{const u=q.url.split('?')[0],f=path.join(OUT,
 const browser=await chromium.launch({executablePath:CHROME,args:['--no-sandbox']});
 const page=await(await browser.newContext({reducedMotion:'reduce',viewport:{width:390,height:844},locale:'en-IN'})).newPage();page.setDefaultTimeout(5000);
 let fails=0;const ok=(name,condition)=>{console.log((condition?'PASS ':'FAIL ')+name);if(!condition)fails++;};
-await page.goto(`http://localhost:${srv.address().port}/`);await page.waitForSelector('html.ready');await page.click('[data-act=start]');
+await page.goto(`http://localhost:${srv.address().port}/`);await page.waitForSelector('html.ready');await page.click('[data-act=start]');await page.click('[data-act=acSkip]');
 await page.evaluate(()=>{
   const {S,setStack,draw}=window.__t,day=n=>S.mon+'-'+String(n).padStart(2,'0');
   S.records.push(

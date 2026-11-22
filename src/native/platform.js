@@ -31,6 +31,10 @@ export const platform={
     try{const r=await Filesystem.readFile({path:name,directory:Directory.Data});return typeof r.data==='string'?r.data:null;}
     catch(e){return null;}
   },
+  async deleteFile(name){
+    if(!isNative){mem.files.delete(name);return;}
+    try{await Filesystem.deleteFile({path:name,directory:Directory.Data});}catch(e){}
+  },
   async writeFile(name,b64){
     if(!isNative){mem.files.set(name,b64);return;}
     await Filesystem.writeFile({path:name,data:b64,directory:Directory.Data});

@@ -14,7 +14,7 @@ const browser=await chromium.launch({executablePath:CHROME,args:['--no-sandbox']
 const page=await (await browser.newContext({reducedMotion:'reduce',viewport:{width:390,height:844},locale:'en-IN'})).newPage();page.setDefaultTimeout(5000);
 let fails=0;const ok=(n,c)=>{console.log((c?'PASS ':'FAIL ')+n);if(!c)fails++;};
 await page.goto(`http://localhost:${srv.address().port}/`);await page.waitForSelector('html.ready');
-await page.click('[data-act=start]');await page.click('[data-act=openCat][data-id=travel]');await page.click('[data-act=tTab][data-v=distance]');
+await page.click('[data-act=start]');await page.click('[data-act=acSkip]');await page.click('[data-act=openCat][data-id=travel]');await page.click('[data-act=tTab][data-v=distance]');
 await page.click('[data-act=tAdd][data-s=distance]');
 await page.fill('#f_date','2026-10-10');await page.fill('#f_from','Delhi');await page.fill('#f_to','Mumbai');await page.fill('#f_km','1400');await page.fill('#f_vehicle','Car');
 await page.click('[data-act=saveForm]');

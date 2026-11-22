@@ -1,7 +1,10 @@
 import {S,blank,replaceState,setPersistHook,flags,migrateState} from './data/state.js';
 import {$} from './core/util.js';
 import {curMonth} from './core/dates.js';
-import {loadState,saveState} from './data/storage.js';
+import {loadState,saveState,switchStore,slotsFor} from './data/storage.js';
+import {loadRegistry,REG} from './data/profiles.js';
+import {track} from './data/changes.js';
+import {init as initSync,scheduleSync} from './sync/service.js';
 import {platform} from './native/platform.js';
 import {syncBillNotifications} from './native/notifications.js';
 import {stack,setStack,draw,back,closeL,sheet,tab,layer,toast} from './ui/nav.js';
@@ -11,7 +14,7 @@ import {tick} from './ui/clock.js';
 import {showLock,unlock,onAppState,applyLockEffects,isLocked} from './native/lock.js';
 import {playLaunch} from './ui/launch.js';
 import './ui/views-home.js';import './ui/views-bills.js';import './ui/views-water.js';import './ui/views-travel-rent.js';
-import './ui/views-reports.js';import './ui/views-settings.js';import './ui/entry.js';import './ui/quick.js';
+import './ui/views-reports.js';import './ui/views-settings.js';import './ui/views-profiles.js';import './ui/entry.js';import './ui/quick.js';
 import './ui/actions.js';import './ui/data-actions.js';
 
 export function unreadableScreen(){
@@ -21,14 +24,14 @@ export function unreadableScreen(){
 export async function boot(){
   applyTheme();
   let loaded=null,bad=false;
-  try{loaded=(await loadState()).state;}catch(e){bad=true;}
+  try{await loadRegistry();await switchStore(slotsFor(REG.active));loaded=(await loadState()).state;}catch(e){bad=true;}
   const first=!loaded;
   if(bad){replaceState(blank());S.onboarded=true;}
   else if(loaded&&loaded.v===1&&Array.isArray(loaded.records)){if(!Array.isArray(loaded.houses))loaded.houses=[];if(!loaded.lock)loaded.lock={on:false,timeout:30};migrateState(loaded);replaceState(loaded);}
   else replaceState(blank());
   S.mon=curMonth();
   flags.readOnly=bad;
-  setPersistHook(()=>{if(!flags.readOnly){saveState(S);syncBillNotifications().catch(()=>toast('Could not update bill reminders','bad'));}});
+  setPersistHook(()=>{if(!flags.readOnly){track(S);saveState(S);syncBillNotifications().catch(()=>toast('Could not update bill reminders','bad'));scheduleSync();}});
   applyTheme();applyLockEffects();
   bindEvents();
   setStack([{n:S.onboarded?'home':'welcome',p:{}}]);
@@ -38,6 +41,7 @@ export async function boot(){
   setInterval(tick,1000);
   if(window.matchMedia)matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>applyTheme());
   platform.cleanTemp();
+  initSync().catch(()=>{});
   const reduced=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
   const lockOn=S.lock.on&&S.onboarded&&!bad;
   if(lockOn){showLock(false);}else{draw();}
