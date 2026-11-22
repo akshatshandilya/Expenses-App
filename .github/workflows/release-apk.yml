@@ -66,7 +66,8 @@ jobs:
           AAPT=$(find "$ANDROID_HOME/build-tools" -name aapt2 | sort -V | tail -1)
           if [ -n "$AAPT" ]; then
             "$AAPT" dump permissions "$APK" | tee permissions.txt
-            if grep -q "android.permission.INTERNET" permissions.txt; then echo "INTERNET permission found. Failing."; exit 1; fi
+            if ! grep -q "android.permission.INTERNET" permissions.txt; then echo "Expected INTERNET permission for shared-profile sync was not found. Failing."; exit 1; fi
+            echo "Expected INTERNET permission is present for shared-profile sync."
           fi
 
       - name: Name the APK
